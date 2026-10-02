@@ -4,6 +4,13 @@
 #   bin/<test>-g6    from G6, if set (AROS's default compiler, for comparison)
 # build.log keeps every warning. Copy bin/ and run-tests to DH1:GCC16/ on an
 # AROS 68k machine and Execute run-tests; it writes DH1:GCC16/results.txt.
+#
+# C++ programs link with -Wl,-u,__pthread_Init_Func -lpthread -latomic. On AROS
+# 68k libstdc++ takes its locks through pthread; when only libstdc++ pulls the
+# pthread objects in, collect-aros leaves pthread's ADD2INIT entry out of the
+# init set, its semaphores stay zeroed and the first lock waits for ever (both
+# GCC 6.5 and 16.2). Forcing __pthread_Init_Func in early puts it back.
+CXXLINK="-Wl,-u,__pthread_Init_Func -lpthread -latomic"
 cd "$(dirname "$0")"
 G16="${G16:-$(cd .. && pwd)/work/toolchain/m68k-aros-}"
 mkdir -p bin
@@ -24,9 +31,9 @@ for v in g6 g16; do
     else pre=$G16 cxx=-std=gnu++20 c=-std=gnu23; fi
     build $v "$pre" t1 gcc "$c"
     build $v "$pre" t2 gcc "$c" -lm
-    build $v "$pre" t3 g++ "$cxx"
-    build $v "$pre" t4 g++ "$cxx"
-    build $v "$pre" t5 g++ "$cxx" -lpthread -latomic
+    build $v "$pre" t3 g++ "$cxx" $CXXLINK
+    build $v "$pre" t4 g++ "$cxx" $CXXLINK
+    build $v "$pre" t5 g++ "$cxx" $CXXLINK
     build $v "$pre" t6 gcc "$c"
     build $v "$pre" t7 gcc "$c"
 done

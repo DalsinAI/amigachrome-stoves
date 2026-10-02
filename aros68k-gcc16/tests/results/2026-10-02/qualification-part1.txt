@@ -1,0 +1,31 @@
+GCC16 qualification
+Friday 02-Oct-26 03:51:28
+== t1-g16
+t1 C library: 11 passed, 0 failed
+RESULT PASS
+rc=0
+== t1-g6
+t1 C library: 11 passed, 0 failed
+RESULT PASS
+rc=0
+== t2-g16
+  formatted: 3.1415926536 1.234568e+04 0.0001
+  i64 product: -121932097667998095
+t2 math: 12 passed, 0 failed
+RESULT PASS
+rc=0
+== t2-g6
+  formatted: 3.1415926536 1.234568e+04 0.0001
+  i64 product: -121932097667998095
+t2 math: 12 passed, 0 failed
+RESULT PASS
+rc=0
+== t3-g16
+t3 C++ (202002): 15 passed, 0 failed, 0 skipped
+RESULT PASS
+rc=0
+== t3-g6
+t3 C++ (201402): 7 passed, 0 failed, 8 skipped
+RESULT PASS
+rc=0
+== t4-g16

@@ -1,0 +1,8 @@
+== h2c-g16
+h2c std::string after one thread: abcdef
+== h2c-g6
+h2c std::string after one thread: abcdef
+== h2w-g16
+RAM:h2w-g16: object not found
+== h2w-g6
+RAM:h2w-g6: object not found

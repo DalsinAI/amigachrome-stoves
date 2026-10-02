@@ -6,8 +6,8 @@ A modern C and C++ compiler for AROS on the 68k: GCC 16.2.0 with binutils
 whose patches cover m68k-aros up to GCC 16.2. AROS still builds 68k with GCC
 6.5 by default; this stove sits beside it and replaces nothing.
 
-**Status: experimental.** First built 2 October 2026. The test results are
-below once they are in.
+**Status: experimental.** First built and qualified 2 October 2026: C, C++20,
+threads and the AROS API pass; C++ exceptions do not yet (see Findings).
 
 ## What it gives you
 
@@ -50,6 +50,10 @@ work/toolchain/m68k-aros-g++ -O2 -std=gnu++20 -o app app.cpp
 work/toolchain/m68k-aros-g++ -O2 -o threads threads.cpp -lpthread -latomic
 ```
 
+**Every C++ program on AROS 68k needs** `-Wl,-u,__pthread_Init_Func -lpthread -latomic`
+(both this stove and AROS's GCC 6.5; see Findings). Without it, the first
+`std::string`, `new`, static-local guard or `shared_ptr` can hang for ever.
+
 Old Amiga sources may need `-std=gnu11 -fpermissive`. Since GCC 14, implicit
 function declarations, implicit int and pointer/integer mixing are errors;
 since GCC 15, C23 is the default, so `bool` is a keyword and `int f()` means
@@ -82,9 +86,40 @@ machine and `Execute DH1:GCC16/run-tests`. Results land in
 
 ## Results
 
-Pending: the first run is under way.
+First qualification, 2 October 2026, on an AmigaChrome A1200 with the AC090
+running AROS 68k (Instance-21). Raw output in `tests/results/2026-10-02/`.
 
-## Findings so far
+| Test | GCC 16.2 | GCC 6.5 |
+| --- | --- | --- |
+| t1 C library | 11/11 | 11/11 |
+| t2 64-bit integers, floating point | 12/12 | 12/12 |
+| t3 C++ library | 15/15 (C++20, with `std::format`) | 7/7 (C++14; 8 newer checks skipped) |
+| t4 exceptions | **spins** | **spins** |
+| t5 threads | 4/4 | 4/4 |
+| t6 AROS API (exec, dos) | 12/12 | 12/12 |
+| t7 benchmark | checksums match the host's | checksums match the host's |
 
+t3 and t5 are linked as in the note under *Use it*. The benchmark's times are
+the same for both compilers within the 20 ms timer's resolution (about 0.8 s,
+most of it soft-float).
+
+## Findings
+
+- **C++ hangs at its first lock unless pthread is forced in early.** The C++
+  library takes its locks through pthread. When only libstdc++ pulls the
+  pthread objects in, `collect-aros` leaves pthread's `ADD2INIT` entry
+  (`__aros_set_INIT___pthread_Init_Func`) out of the init set: `nm` shows it
+  at address 0, type `r`. pthread's semaphores stay zeroed and the first
+  `ObtainSemaphore` waits for ever (the task waits on `SIGF_SINGLE`). A program
+  that calls `pthread_create` itself is fine. `-Wl,-u,__pthread_Init_Func`
+  puts the entry back (type `d`). The same holds for GCC 6.5, so it is AROS's
+  link, not the compiler. Evidence: `narrowing-*.txt`, `src/narrow/`.
+- **C++ exceptions do not work yet, under either compiler.** A throw spins
+  between the program and one ROM routine; the unwinder's frame registration
+  looks the likely suspect (the same init-set story). Under investigation.
+- **Linking the whole of `libpthread.a` fails:** `pthread_attr_setstacksize`
+  is defined twice (in `pthread.o` and its own object). An AROS packaging bug.
+- **Program size:** C++20 with `std::format` is large (14 MB for t3 against
+  1.8 MB under GCC 6.5's C++14); C programs are within a few per cent.
 - GCC 6.5 (AROS's default) has no `std::exception_ptr` on the 68000, and
-  `std::atomic` needs `-latomic`. Both are in the tests.
+  `std::atomic` needs `-latomic`. GCC 16.2 has both.
