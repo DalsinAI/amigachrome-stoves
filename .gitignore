@@ -1,0 +1,4 @@
+# Build output stays out of git; binaries go in releases.
+*/work/
+*/tests/bin/
+*/tests/build.log
