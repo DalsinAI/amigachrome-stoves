@@ -1,0 +1,42 @@
+GCC16 qualification part 3
+== t5-g16
+t5 threads: 4 passed, 0 failed
+RESULT PASS
+rc=0
+== t5-g6
+t5 threads: 4 passed, 0 failed
+RESULT PASS
+rc=0
+== t6-g16
+  SYS: is :
+  Task "RAM:gcctest", 265034432 bytes free
+t6 AROS API: 12 passed, 0 failed
+RESULT PASS
+rc=0
+== t6-g6
+  SYS: is :
+  Task "RAM:gcctest", 265026320 bytes free
+t6 AROS API: 12 passed, 0 failed
+RESULT PASS
+rc=0
+== t7-g16
+  crc32   c80a0dcc        20 ms
+  sieve      33860        20 ms
+  qsort   1206985858        20 ms
+  matrix  -73        20 ms
+  mandel       688       720 ms
+  total                 800 ms
+t7 bench: checksums match
+RESULT PASS
+rc=0
+== t7-g6
+  crc32   c80a0dcc        20 ms
+  sieve      33860         0 ms
+  qsort   1206985858        40 ms
+  matrix  -73        20 ms
+  mandel       688       680 ms
+  total                 760 ms
+t7 bench: checksums match
+RESULT PASS
+rc=0
+== done

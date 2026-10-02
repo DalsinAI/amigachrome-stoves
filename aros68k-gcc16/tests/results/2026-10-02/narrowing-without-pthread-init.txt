@@ -1,0 +1,24 @@
+== h1_plain-g16
+h1 plain C++: ok
+== h1_plain-g6
+h1 plain C++: ok
+== h2_string-g16
+== h2_string-g6
+== h3_guard-g16
+== h3_guard-g6
+== h4_throw-g16
+== h4_throw-g6
+== h5_shared-g16
+== h5_shared-g6
+== h6_new-g16
+== h6_new-g6
+== t3-g16
+== t3-g6
+== t4-g16
+== t4-g6
+== t5-g16
+t5 threads: 4 passed, 0 failed
+RESULT PASS
+== t5-g6
+t5 threads: 4 passed, 0 failed
+RESULT PASS

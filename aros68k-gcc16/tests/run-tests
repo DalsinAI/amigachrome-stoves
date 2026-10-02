@@ -1,51 +1,65 @@
-; GCC 16.2 stove test run (Dale, 2 Oct 2026). Each test is built by
-; GCC 6.5 (-g6) and GCC 16.2 (-g16); results go to DH1:GCC16/results.txt.
-; It renames itself to run-tests.done at the end, so it runs once.
+; GCC 16.2 stove qualification (Dale, 2 Oct 2026): seven tests, each built by
+; GCC 16.2 (-g16) and GCC 6.5 (-g6). C++ links with -Wl,-u,__pthread_Init_Func.
+; Each program is copied to RAM: and run from there. Runs once (renamed at the end).
 FailAt 1000
 Stack 262144
-Echo "GCC16 test run" >DH1:GCC16/results.txt
+Echo "GCC16 qualification" >DH1:GCC16/results.txt
 Date >>DH1:GCC16/results.txt
-Echo "== t1-g6" >>DH1:GCC16/results.txt
-DH1:GCC16/bin/t1-g6 >>DH1:GCC16/results.txt
-Echo "rc=$RC" >>DH1:GCC16/results.txt
 Echo "== t1-g16" >>DH1:GCC16/results.txt
-DH1:GCC16/bin/t1-g16 >>DH1:GCC16/results.txt
+Copy DH1:GCC16/bin/t1-g16 TO RAM:gcctest QUIET
+RAM:gcctest >>DH1:GCC16/results.txt
 Echo "rc=$RC" >>DH1:GCC16/results.txt
-Echo "== t2-g6" >>DH1:GCC16/results.txt
-DH1:GCC16/bin/t2-g6 >>DH1:GCC16/results.txt
+Echo "== t1-g6" >>DH1:GCC16/results.txt
+Copy DH1:GCC16/bin/t1-g6 TO RAM:gcctest QUIET
+RAM:gcctest >>DH1:GCC16/results.txt
 Echo "rc=$RC" >>DH1:GCC16/results.txt
 Echo "== t2-g16" >>DH1:GCC16/results.txt
-DH1:GCC16/bin/t2-g16 >>DH1:GCC16/results.txt
+Copy DH1:GCC16/bin/t2-g16 TO RAM:gcctest QUIET
+RAM:gcctest >>DH1:GCC16/results.txt
 Echo "rc=$RC" >>DH1:GCC16/results.txt
-Echo "== t3-g6" >>DH1:GCC16/results.txt
-DH1:GCC16/bin/t3-g6 >>DH1:GCC16/results.txt
+Echo "== t2-g6" >>DH1:GCC16/results.txt
+Copy DH1:GCC16/bin/t2-g6 TO RAM:gcctest QUIET
+RAM:gcctest >>DH1:GCC16/results.txt
 Echo "rc=$RC" >>DH1:GCC16/results.txt
 Echo "== t3-g16" >>DH1:GCC16/results.txt
-DH1:GCC16/bin/t3-g16 >>DH1:GCC16/results.txt
+Copy DH1:GCC16/bin/t3-g16 TO RAM:gcctest QUIET
+RAM:gcctest >>DH1:GCC16/results.txt
 Echo "rc=$RC" >>DH1:GCC16/results.txt
-Echo "== t4-g6" >>DH1:GCC16/results.txt
-DH1:GCC16/bin/t4-g6 >>DH1:GCC16/results.txt
+Echo "== t3-g6" >>DH1:GCC16/results.txt
+Copy DH1:GCC16/bin/t3-g6 TO RAM:gcctest QUIET
+RAM:gcctest >>DH1:GCC16/results.txt
 Echo "rc=$RC" >>DH1:GCC16/results.txt
 Echo "== t4-g16" >>DH1:GCC16/results.txt
-DH1:GCC16/bin/t4-g16 >>DH1:GCC16/results.txt
+Copy DH1:GCC16/bin/t4-g16 TO RAM:gcctest QUIET
+RAM:gcctest >>DH1:GCC16/results.txt
 Echo "rc=$RC" >>DH1:GCC16/results.txt
-Echo "== t5-g6" >>DH1:GCC16/results.txt
-DH1:GCC16/bin/t5-g6 >>DH1:GCC16/results.txt
+Echo "== t4-g6" >>DH1:GCC16/results.txt
+Copy DH1:GCC16/bin/t4-g6 TO RAM:gcctest QUIET
+RAM:gcctest >>DH1:GCC16/results.txt
 Echo "rc=$RC" >>DH1:GCC16/results.txt
 Echo "== t5-g16" >>DH1:GCC16/results.txt
-DH1:GCC16/bin/t5-g16 >>DH1:GCC16/results.txt
+Copy DH1:GCC16/bin/t5-g16 TO RAM:gcctest QUIET
+RAM:gcctest >>DH1:GCC16/results.txt
 Echo "rc=$RC" >>DH1:GCC16/results.txt
-Echo "== t6-g6" >>DH1:GCC16/results.txt
-DH1:GCC16/bin/t6-g6 >>DH1:GCC16/results.txt
+Echo "== t5-g6" >>DH1:GCC16/results.txt
+Copy DH1:GCC16/bin/t5-g6 TO RAM:gcctest QUIET
+RAM:gcctest >>DH1:GCC16/results.txt
 Echo "rc=$RC" >>DH1:GCC16/results.txt
 Echo "== t6-g16" >>DH1:GCC16/results.txt
-DH1:GCC16/bin/t6-g16 >>DH1:GCC16/results.txt
+Copy DH1:GCC16/bin/t6-g16 TO RAM:gcctest QUIET
+RAM:gcctest >>DH1:GCC16/results.txt
 Echo "rc=$RC" >>DH1:GCC16/results.txt
-Echo "== t7-g6" >>DH1:GCC16/results.txt
-DH1:GCC16/bin/t7-g6 >>DH1:GCC16/results.txt
+Echo "== t6-g6" >>DH1:GCC16/results.txt
+Copy DH1:GCC16/bin/t6-g6 TO RAM:gcctest QUIET
+RAM:gcctest >>DH1:GCC16/results.txt
 Echo "rc=$RC" >>DH1:GCC16/results.txt
 Echo "== t7-g16" >>DH1:GCC16/results.txt
-DH1:GCC16/bin/t7-g16 >>DH1:GCC16/results.txt
+Copy DH1:GCC16/bin/t7-g16 TO RAM:gcctest QUIET
+RAM:gcctest >>DH1:GCC16/results.txt
+Echo "rc=$RC" >>DH1:GCC16/results.txt
+Echo "== t7-g6" >>DH1:GCC16/results.txt
+Copy DH1:GCC16/bin/t7-g6 TO RAM:gcctest QUIET
+RAM:gcctest >>DH1:GCC16/results.txt
 Echo "rc=$RC" >>DH1:GCC16/results.txt
 Echo "== done" >>DH1:GCC16/results.txt
 Rename DH1:GCC16/run-tests DH1:GCC16/run-tests.done
