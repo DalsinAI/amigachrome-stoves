@@ -1,0 +1,12 @@
+# sha256  file  url
+# Pinned 2 Oct 2026. GCC and binutils also carry GNU signatures, checked
+# with gpgv against the pinned GNU keyring.
+e6738e29597f733270731aa90600f37ffdc045079dfc27ec7e8192cc81085c3e  gcc-16.2.0.tar.xz  https://ftp.gnu.org/gnu/gcc/gcc-16.2.0/gcc-16.2.0.tar.xz
+43d73202dcede15d31001c6ba0d28723014ef57e4dc815631772daadbe23bcd2  gcc-16.2.0.tar.xz.sig  https://ftp.gnu.org/gnu/gcc/gcc-16.2.0/gcc-16.2.0.tar.xz.sig
+3068128c75cda9f898ccb4211d360246e8e195ffcc9dfb655b23ae23a54800e8  binutils-2.47.tar.bz2  https://ftp.gnu.org/gnu/binutils/binutils-2.47.tar.bz2
+133e31f4eedfe16cd47fa30a15ceef7a953cb8027766028d0a00d5b5a9e14a28  binutils-2.47.tar.bz2.sig  https://ftp.gnu.org/gnu/binutils/binutils-2.47.tar.bz2.sig
+b136fbe57ade4ee5270ca66c402cae7b50349fd07646b5b3de7962d58d4df608  gnu-keyring.gpg  https://ftp.gnu.org/gnu/gnu-keyring.gpg
+6d8babb59e7b672e8cb7870e874f3f7b813b6e00e6af3f8b04f7579965643d5c  isl-0.27.tar.xz  https://libisl.sourceforge.io/isl-0.27.tar.xz
+ac28211a7cfb609bae2e2c8d6058d66c8fe96434f740cf6fe2e47b000d1c20cb  gmp-6.3.0.tar.bz2  https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.bz2
+9ad62c7dc910303cd384ff8f1f4767a655124980bb6d8650fe62c815a231bb7b  mpfr-4.2.2.tar.bz2  https://ftp.gnu.org/gnu/mpfr/mpfr-4.2.2.tar.bz2
+91204cd32f164bd3b7c992d4a6a8ce6519511aadab30f78b6982d0bf8d73e931  mpc-1.4.1.tar.xz  https://ftp.gnu.org/gnu/mpc/mpc-1.4.1.tar.xz
