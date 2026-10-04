@@ -1,4 +1,4 @@
-; GCC 16.2 stove qualification (Dale, 2 Oct 2026): seven tests, each built by
+; GCC 16.2 stove qualification (We, 2 Oct 2026): seven tests, each built by
 ; GCC 16.2 (-g16) and GCC 6.5 (-g6). C++ links with -Wl,-u,__pthread_Init_Func.
 ; Each program is copied to RAM: and run from there. Runs once (renamed at the end).
 FailAt 1000
