@@ -27,3 +27,7 @@ licence; AROS and its headers and libraries under the AROS Public License.
 Every release that carries binaries also carries the exact sources and
 patches they were built from. Programs you compile with a stove can be under
 any licence you choose.
+
+## Contributors
+
+AmigaChrome stoves is created and maintained by [SacredTrees](https://github.com/SacredTrees) with the AmigaChrome agent team, copyright Dalsin Limited. Everyone whose work it includes is credited in [`CONTRIBUTORS.md`](CONTRIBUTORS.md).
