@@ -80,6 +80,20 @@ echo "configuring (log: $LOGS/configure.log)"
 echo "building (log: $LOGS/build.log)"
 ( cd "$SDK" && make -j"$JOBS" crosstools ) > "$LOGS/build.log" 2>&1
 
+# 3b. Defaults: address 0 is memory on a 68k Amiga (chip RAM, exec's pointer at 4).
+# GCC assumes nothing lives there; at -O2 it turns a read through a pointer it
+# has proved null into TRAP #7 and drops null checks after a read. A specs file
+# beside libgcc makes -fno-delete-null-pointer-checks the default; a build can
+# still ask for -fdelete-null-pointer-checks.
+SPECS="$(dirname "$("$PREFIX/m68k-aros-gcc" -print-libgcc-file-name)")/specs"
+printf '*cc1:\n+ -fno-delete-null-pointer-checks\n\n*cc1plus:\n+ -fno-delete-null-pointer-checks\n\n' > "$SPECS"
+printf 'volatile unsigned long s;\nint main(void) { s = *(volatile unsigned long *)0; return 0; }\n' > "$LOGS/nullread.c"
+"$PREFIX/m68k-aros-gcc" -O2 -c -o "$LOGS/nullread.o" "$LOGS/nullread.c"
+if "$PREFIX/m68k-aros-objdump" -d "$LOGS/nullread.o" | grep -qE 'trap +#7'; then
+  echo "the stove still turns a read of address 0 into TRAP #7 ($SPECS)"; exit 1
+fi
+echo "defaults: $SPECS (-fno-delete-null-pointer-checks)"
+
 # 4. Identity: what this stove is, so it is never mistaken for another compiler.
 python3 - "$WORK" "$AROS_REF" "$GCC_VERSION" "$BINUTILS_VERSION" <<'PY'
 import json, sys, time, subprocess
@@ -91,6 +105,7 @@ identity = {
     "target": "m68k-aros", "gcc": gcc, "binutils": binutils, "arosRef": ref,
     "compilerVersion": subprocess.run([str(cc), "--version"], capture_output=True, text=True).stdout.splitlines()[0],
     "prefix": "toolchain", "sysroot": "sdk-build/bin/amiga-m68k/AROS/Developer",
+    "defaultFlags": ["-fno-delete-null-pointer-checks"],
     "builtAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
 }
 (work / "stove.json").write_text(json.dumps(identity, indent=2) + "\n")
