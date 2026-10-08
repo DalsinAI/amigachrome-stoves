@@ -57,9 +57,25 @@ work/toolchain/m68k-aros-g++ -O2 -o threads threads.cpp -lpthread -latomic
 Old Amiga sources may need `-std=gnu11 -fpermissive`. Since GCC 14, implicit
 function declarations, implicit int and pointer/integer mixing are errors;
 since GCC 15, C23 is the default, so `bool` is a keyword and `int f()` means
-no arguments. On the Amiga, address 0 is real memory, and code that bends the
-aliasing rules is common, so `-fno-delete-null-pointer-checks` and
-`-fno-strict-aliasing` are worth having for old code.
+no arguments. Code that bends the aliasing rules is common, so
+`-fno-strict-aliasing` is worth having for old code.
+
+**Address 0 is memory** (chip RAM, with exec's pointer at 4), so the stove
+makes `-fno-delete-null-pointer-checks` the default (8 Oct 2026). Without it,
+GCC at `-O2` turns a read through a pointer it has proved null into `TRAP #7`,
+and drops null checks that follow a read. `build.sh` writes a `specs` file
+beside libgcc (`toolchain/lib/gcc/m68k-aros/16.2.0/specs`) that adds the flag
+for C and C++, and stops if a read of address 0 still compiles to the trap.
+A build can still pass `-fdelete-null-pointer-checks`. A stove built before
+8 Oct 2026 gets the same default by putting that file there by hand:
+
+```
+*cc1:
++ -fno-delete-null-pointer-checks
+
+*cc1plus:
++ -fno-delete-null-pointer-checks
+```
 
 ## Tests
 
