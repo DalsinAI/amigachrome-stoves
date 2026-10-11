@@ -25,6 +25,16 @@ does not need the NDK:
 | `-m68060` with the FPU linked the 68000 libraries; `-mhard-float` linked soft-float libm | bebbo amiga16.2 before 9 Oct | Fixed in bebbo's tree: `50a8efdec` | build with `-m68881` and check the multilib (`-print-multi-directory`) |
 | A read through a pointer GCC proves null becomes `TRAP #7` | all GCC 16 | Not a bug: address 0 is memory on an Amiga. Build with `-fno-delete-null-pointer-checks` | — |
 
+**bebbo's current `amiga16.2` passes GCC's execute torture suite under qemu-m68k.** With patch 0004, at `-m68020 -m68881 -O2`, on 11 October:
+
+| Result | Tests |
+| --- | ---: |
+| Pass | 1,496 |
+| Fail | 14 |
+| Couldn't build in the harness | 182 |
+
+All 14 failures fail identically with upstream GCC there. They need `-fwrapv`, trampolines, `-finstrument-functions` or a full C library.
+
 bebbo's tree has also fixed, since the start of October:
 - `cse` and post-increment addresses (`gcc.c-torture/execute/va-arg-22.c` at `-O2`);
 - overlapping auto-increment moves in HI, QI and SF modes (PR 123853);
