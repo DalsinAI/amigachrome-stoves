@@ -8,7 +8,7 @@ machine it targets. Built stoves are published as releases.
 | Stove | Compiler | Builds programs for | Status |
 | --- | --- | --- | --- |
 | [aros68k-gcc16](aros68k-gcc16/) | GCC 16.2.0, binutils 2.47 | AROS 68k | Experimental |
-| [os32-gcc16](os32-gcc16/) | bebbo's GCC 16.2.0b (`amiga16.2`) | AmigaOS 3.x | Tests and patches only (the recipe needs the NDK) |
+| [os32-gcc16](os32-gcc16/) | bebbo's GCC 16.2.0b (`amiga16.2`) | AmigaOS 3.x | Tests only: built by [openamigagcc](https://github.com/DalsinAI/openamigagcc) |
 
 Each stove says what it is in `stove.json`, so it is never mistaken for
 another compiler: a stove is added beside the ones that work, never in place
@@ -16,7 +16,7 @@ of them.
 
 The AmigaOS 3.2 stoves are not built here. They need the AmigaOS NDK, which is
 not ours to redistribute; they stay on the machines that hold their own NDK.
-`os32-gcc16/` holds the tests and GCC patches for the GCC 16 one, which need no NDK.
+`os32-gcc16/` holds tests for the GCC 16 one; its recipe and patches are DalsinAI/openamigagcc.
 
 ## Licences
 
