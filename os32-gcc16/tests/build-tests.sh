@@ -38,6 +38,13 @@ for t in t3a_join t3b_condvar t3c_tls t3d_once t3e_async t3g_malloc t3h_malloc_l
     run "${P}g++" $F -o bin/$b-020 src/$t.cpp $CXXLIBS && ok bin/$b-020 || bad bin/$b-020
 done
 run "${P}gcc" -m68020 -m68881 $COMMON -o bin/t3f-020 src/t3f_pthread.c -lpthread && ok bin/t3f-020 || bad bin/t3f-020
+# t11-t19: C++ thread safety (exceptions in threads, thread_local destructors,
+# more than 22 threads at once, shared_mutex, jthread, atomic wait, cv_any,
+# iostreams, 1150 short threads)
+for t in t11_thread_except t12_tls_dtor t13_many_threads t14_shared_mutex t15_jthread t16_atomic_wait t17_cv_any t18_iostream t19_create_join; do
+    b=${t%%_*}
+    run "${P}g++" $F -o bin/$b-020 src/$t.cpp $CXXLIBS && ok bin/$b-020 || bad bin/$b-020
+done
 # t5: a jump table that needs 32-bit offsets
 run "${P}gcc" -m68020 $COMMON -mlong-jump-table-offsets -o bin/t5-020 src/t5_bigswitch.c && ok bin/t5-020 || bad bin/t5-020
 # t6: the FPCR clash (exit code 0 is right; 7 is the clash)

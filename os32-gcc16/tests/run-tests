@@ -1,6 +1,8 @@
 ; os32-gcc16 qualification: Execute run-tests from the folder holding bin/.
 ; Writes results/<test>.txt and results/summary.txt (each test's return code).
-; t3 (all the thread pieces together) runs last: it crashed on 11 Oct.
+; t11-t19 test C++ thread safety. t3 (all the thread pieces together) crashed
+; on 11 Oct with the stock libpthread; t18 ended the shell running it (11 Oct),
+; so it runs last of all.
 FailAt 1000
 Stack 1000000
 If NOT EXISTS results
@@ -103,10 +105,55 @@ If EXISTS bin/t10-060
   bin/t10-060 >results/t10-060.txt
   Echo "t10-060 rc=$RC" >>results/summary.txt
 EndIf
+If EXISTS bin/t11-020
+  Echo "t11-020 ..."
+  bin/t11-020 >results/t11-020.txt
+  Echo "t11-020 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t12-020
+  Echo "t12-020 ..."
+  bin/t12-020 >results/t12-020.txt
+  Echo "t12-020 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t13-020
+  Echo "t13-020 ..."
+  bin/t13-020 >results/t13-020.txt
+  Echo "t13-020 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t14-020
+  Echo "t14-020 ..."
+  bin/t14-020 >results/t14-020.txt
+  Echo "t14-020 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t15-020
+  Echo "t15-020 ..."
+  bin/t15-020 >results/t15-020.txt
+  Echo "t15-020 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t16-020
+  Echo "t16-020 ..."
+  bin/t16-020 >results/t16-020.txt
+  Echo "t16-020 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t17-020
+  Echo "t17-020 ..."
+  bin/t17-020 >results/t17-020.txt
+  Echo "t17-020 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t19-020
+  Echo "t19-020 ..."
+  bin/t19-020 >results/t19-020.txt
+  Echo "t19-020 rc=$RC" >>results/summary.txt
+EndIf
 If EXISTS bin/t3-020
   Echo "t3-020 ..."
   bin/t3-020 >results/t3-020.txt
   Echo "t3-020 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t18-020
+  Echo "t18-020 ..."
+  bin/t18-020 >results/t18-020.txt
+  Echo "t18-020 rc=$RC" >>results/summary.txt
 EndIf
 Echo "done" >>results/summary.txt
 Type results/summary.txt

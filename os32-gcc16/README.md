@@ -10,7 +10,7 @@ slot that broke `-m68060`/`-m68040` builds (0008). openamigagcc's
 
 This folder adds broader qualification tests, which need no NDK:
 
-- `tests/`: ten programs built with `tests/build-tests.sh`, run on an instance
+- `tests/`: nineteen programs (and t3's pieces, t3a-t3h) built with `tests/build-tests.sh`, run on an instance
   with `tests/run-tests` and judged with `tests/check-results.sh`. MIT.
 - `tests/qemu-check/`: how upstream GCC 16.2.0 and bebbo's public `amiga16.2`
   were checked on 11 October 2026 without an Amiga, under qemu-m68k. MIT.
@@ -51,6 +51,15 @@ This folder adds broader qualification tests, which need no NDK:
 | t8 | BearSSL as OpenTLS's CPU=060 build compiles it (i15, ctmul32, m15 curves), output equal to `expected/` | 020, 060 |
 | t9 | OpenCrypto (SHA-2, X25519, Ed25519, ChaCha20-Poly1305, AES, RSA, ECDSA, sntrup761), output equal to `expected/` | 020, 060 |
 | t10 | the loop shift and an overlapping backward copy | 020, 060 |
+| t11 | exceptions thrown and caught in 8 threads; carried out of `async`, `promise`, `packaged_task` and an `exception_ptr` | 020 |
+| t12 | `thread_local` objects with constructors and destructors in 80 threads: destroyed by the time `join()` returns, counts equal | 020 |
+| t13 | 50, then 100 threads alive at once (past libpthread's 22- and 94-slot table sizes), each with `thread_local` data | 020 |
+| t14 | `shared_mutex` readers and writers; `shared_timed_mutex` `try_lock_for` and `try_lock_shared` | 020 |
+| t15 | `jthread`, `stop_token`, `stop_callback`, `condition_variable_any::wait` with a `stop_token` | 020 |
+| t16 | `atomic` wait/notify, `atomic_flag` wait, `latch`, `barrier`, `counting_semaphore` | 020 |
+| t17 | `condition_variable_any` with `mutex`, `shared_mutex` and a lock of its own; `wait_for` timing out | 020 |
+| t18 | `ostringstream`/`istringstream` (ints, hex, doubles) in 8 threads; `cout` from several threads | 020 |
+| t19 | 1,150 short threads: one after another, in batches, detached, `async`; `thread_local` destructors | 020 |
 
 ```sh
 cd os32-gcc16/tests
