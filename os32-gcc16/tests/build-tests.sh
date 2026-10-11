@@ -32,6 +32,12 @@ if run "${P}g++" $F -c src/t1_except_b.cpp -o obj/t1b.o && run "${P}ar" rcs obj/
 run "${P}g++" $F -o bin/t2-020 src/t2_rtti_a.cpp src/t2_rtti_b.cpp $CXXLIBS && ok bin/t2-020 || bad bin/t2-020
 run "${P}g++" $F -o bin/t3-020 src/t3_threads.cpp $CXXLIBS && ok bin/t3-020 || bad bin/t3-020
 run "${P}g++" $F -o bin/t4-020 src/t4_atomics.cpp $CXXLIBS && ok bin/t4-020 || bad bin/t4-020
+# t3a-t3f: t3's pieces one at a time (t3 crashed with an address error in a thread, 11 Oct)
+for t in t3a_join t3b_condvar t3c_tls t3d_once t3e_async; do
+    b=${t%%_*}
+    run "${P}g++" $F -o bin/$b-020 src/$t.cpp $CXXLIBS && ok bin/$b-020 || bad bin/$b-020
+done
+run "${P}gcc" -m68020 -m68881 $COMMON -o bin/t3f-020 src/t3f_pthread.c -lpthread && ok bin/t3f-020 || bad bin/t3f-020
 # t5: a jump table that needs 32-bit offsets
 run "${P}gcc" -m68020 $COMMON -mlong-jump-table-offsets -o bin/t5-020 src/t5_bigswitch.c && ok bin/t5-020 || bad bin/t5-020
 # t6: the FPCR clash (exit code 0 is right; 7 is the clash)

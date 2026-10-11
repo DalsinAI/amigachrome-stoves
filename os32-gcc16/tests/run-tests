@@ -1,65 +1,112 @@
 ; os32-gcc16 qualification: Execute run-tests from the folder holding bin/.
 ; Writes results/<test>.txt and results/summary.txt (each test's return code).
+; t3 (all the thread pieces together) runs last: it crashed on 11 Oct.
 FailAt 1000
 Stack 1000000
-MakeDir results QUIET
+If NOT EXISTS results
+  MakeDir results
+EndIf
 Echo "os32-gcc16 tests" >results/summary.txt
 Date >>results/summary.txt
 If EXISTS bin/t1-020
+  Echo "t1-020 ..."
   bin/t1-020 >results/t1-020.txt
   Echo "t1-020 rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t2-020
+  Echo "t2-020 ..."
   bin/t2-020 >results/t2-020.txt
   Echo "t2-020 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t3-020
-  bin/t3-020 >results/t3-020.txt
-  Echo "t3-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t3a-020
+  Echo "t3a-020 ..."
+  bin/t3a-020 >results/t3a-020.txt
+  Echo "t3a-020 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t3b-020
+  Echo "t3b-020 ..."
+  bin/t3b-020 >results/t3b-020.txt
+  Echo "t3b-020 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t3c-020
+  Echo "t3c-020 ..."
+  bin/t3c-020 >results/t3c-020.txt
+  Echo "t3c-020 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t3d-020
+  Echo "t3d-020 ..."
+  bin/t3d-020 >results/t3d-020.txt
+  Echo "t3d-020 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t3e-020
+  Echo "t3e-020 ..."
+  bin/t3e-020 >results/t3e-020.txt
+  Echo "t3e-020 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t3f-020
+  Echo "t3f-020 ..."
+  bin/t3f-020 >results/t3f-020.txt
+  Echo "t3f-020 rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t4-020
+  Echo "t4-020 ..."
   bin/t4-020 >results/t4-020.txt
   Echo "t4-020 rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t5-020
+  Echo "t5-020 ..."
   bin/t5-020 >results/t5-020.txt
   Echo "t5-020 rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t6-040
+  Echo "t6-040 ..."
   bin/t6-040 >results/t6-040.txt
   Echo "t6-040 rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t7-020
+  Echo "t7-020 ..."
   bin/t7-020 >results/t7-020.txt
   Echo "t7-020 rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t7-060
+  Echo "t7-060 ..."
   bin/t7-060 >results/t7-060.txt
   Echo "t7-060 rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t8-020
+  Echo "t8-020 ..."
   bin/t8-020 >results/t8-020.txt
   Echo "t8-020 rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t8-060
+  Echo "t8-060 ..."
   bin/t8-060 >results/t8-060.txt
   Echo "t8-060 rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t9-020
+  Echo "t9-020 ..."
   bin/t9-020 >results/t9-020.txt
   Echo "t9-020 rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t9-060
+  Echo "t9-060 ..."
   bin/t9-060 >results/t9-060.txt
   Echo "t9-060 rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t10-020
+  Echo "t10-020 ..."
   bin/t10-020 >results/t10-020.txt
   Echo "t10-020 rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t10-060
+  Echo "t10-060 ..."
   bin/t10-060 >results/t10-060.txt
   Echo "t10-060 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t3-020
+  Echo "t3-020 ..."
+  bin/t3-020 >results/t3-020.txt
+  Echo "t3-020 rc=$RC" >>results/summary.txt
 EndIf
 Echo "done" >>results/summary.txt
 Type results/summary.txt
