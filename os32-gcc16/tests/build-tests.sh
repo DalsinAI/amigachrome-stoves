@@ -33,7 +33,7 @@ run "${P}g++" $F -o bin/t2-020 src/t2_rtti_a.cpp src/t2_rtti_b.cpp $CXXLIBS && o
 run "${P}g++" $F -o bin/t3-020 src/t3_threads.cpp $CXXLIBS && ok bin/t3-020 || bad bin/t3-020
 run "${P}g++" $F -o bin/t4-020 src/t4_atomics.cpp $CXXLIBS && ok bin/t4-020 || bad bin/t4-020
 # t3a-t3f: t3's pieces one at a time (t3 crashed with an address error in a thread, 11 Oct)
-for t in t3a_join t3b_condvar t3c_tls t3d_once t3e_async; do
+for t in t3a_join t3b_condvar t3c_tls t3d_once t3e_async t3g_malloc t3h_malloc_locked; do
     b=${t%%_*}
     run "${P}g++" $F -o bin/$b-020 src/$t.cpp $CXXLIBS && ok bin/$b-020 || bad bin/$b-020
 done
