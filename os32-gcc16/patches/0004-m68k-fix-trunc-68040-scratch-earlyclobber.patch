@@ -1,0 +1,52 @@
+m68k: the 68040 float-to-integer patterns' scratch registers are early-clobber
+
+fix_truncdf{si,hi,qi}2 (TARGET_68881 && TUNE_68040) save FPCR in scratch %2,
+build round-to-zero in scratch %3, then store with fmove.l %1,%0. The scratches
+are written before %0, but were "=d", not "=&d": the allocator may give a
+scratch the data register that %0's address indexes with, as in
+    fmovem.l fpcr,d0 ; ... ; fmove.l fp0,(a0,d0.l*4)
+so the value is stored at an address made from the saved FPCR. LRA does this
+(bebbo's amiga16.2 uses LRA by default; upstream GCC 16.2.0 with -mlra); old
+reload did not. Found 8 October 2026 by the SDL 2 helper (tiny_jpeg's flat grey
+JPEGs; openamigartg tools/fpcr_check.py). Checked 11 October 2026 under
+qemu-m68k with tests/src/t6_fpcr.c: bebbo amiga16.2 (7 Oct and 11 Oct) and
+upstream 16.2.0 -mlra exit 7 before, 0 after. The same three lines apply to
+upstream GCC.
+
+diff --git a/gcc/config/m68k/m68k.md b/gcc/config/m68k/m68k.md
+index 97331988e..80b33baef 100644
+--- a/gcc/config/m68k/m68k.md
++++ b/gcc/config/m68k/m68k.md
+@@ -2186,8 +2186,8 @@
+ (define_insn "fix_truncdfsi2"
+   [(set (match_operand:SI 0 "nonimmediate_operand" "=dm")
+ 	(fix:SI (fix:DF (match_operand:DF 1 "register_operand" "f"))))
+-   (clobber (match_scratch:SI 2 "=d"))
+-   (clobber (match_scratch:SI 3 "=d"))]
++   (clobber (match_scratch:SI 2 "=&d"))
++   (clobber (match_scratch:SI 3 "=&d"))]
+   "TARGET_68881 && TUNE_68040"
+ {
+   return "fmovem%.l %!,%2\;moveq #16,%3\;or%.l %2,%3\;and%.w #-33,%3\;fmovem%.l %3,%!\;fmove%.l %1,%0\;fmovem%.l %2,%!";
+@@ -2196,8 +2196,8 @@
+ (define_insn "fix_truncdfhi2"
+   [(set (match_operand:HI 0 "nonimmediate_operand" "=dm")
+ 	(fix:HI (fix:DF (match_operand:DF 1 "register_operand" "f"))))
+-   (clobber (match_scratch:SI 2 "=d"))
+-   (clobber (match_scratch:SI 3 "=d"))]
++   (clobber (match_scratch:SI 2 "=&d"))
++   (clobber (match_scratch:SI 3 "=&d"))]
+   "TARGET_68881 && TUNE_68040"
+ {
+   return "fmovem%.l %!,%2\;moveq #16,%3\;or%.l %2,%3\;and%.w #-33,%3\;fmovem%.l %3,%!\;fmove%.w %1,%0\;fmovem%.l %2,%!";
+@@ -2206,8 +2206,8 @@
+ (define_insn "fix_truncdfqi2"
+   [(set (match_operand:QI 0 "nonimmediate_operand" "=dm")
+ 	(fix:QI (fix:DF (match_operand:DF 1 "register_operand" "f"))))
+-   (clobber (match_scratch:SI 2 "=d"))
+-   (clobber (match_scratch:SI 3 "=d"))]
++   (clobber (match_scratch:SI 2 "=&d"))
++   (clobber (match_scratch:SI 3 "=&d"))]
+   "TARGET_68881 && TUNE_68040"
+ {
+   return "fmovem%.l %!,%2\;moveq #16,%3\;or%.l %2,%3\;and%.w #-33,%3\;fmovem%.l %3,%!\;fmove%.b %1,%0\;fmovem%.l %2,%!";
