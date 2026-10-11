@@ -45,6 +45,14 @@ for t in t11_thread_except t12_tls_dtor t13_many_threads t14_shared_mutex t15_jt
     b=${t%%_*}
     run "${P}g++" $F -o bin/$b-020 src/$t.cpp $CXXLIBS && ok bin/$b-020 || bad bin/$b-020
 done
+# t12c, t13c, t19c: t12, t13 and t19 built with -fuse-cxa-atexit. With the stove's default
+# (-fno-use-cxa-atexit) GCC registers no destructor for a thread_local, so these
+# count none. Built this way the destructors go through libstdc++'s
+# __cxa_thread_atexit and libpthread's TLS destructor loop at thread exit.
+for t in t12_tls_dtor t13_many_threads t19_create_join; do
+    b=${t%%_*}c
+    run "${P}g++" $F -fuse-cxa-atexit -o bin/$b-020 src/$t.cpp src/cxa_dso.c $CXXLIBS && ok bin/$b-020 || bad bin/$b-020
+done
 # t5: a jump table that needs 32-bit offsets
 run "${P}gcc" -m68020 $COMMON -mlong-jump-table-offsets -o bin/t5-020 src/t5_bigswitch.c && ok bin/t5-020 || bad bin/t5-020
 # t6: the FPCR clash (exit code 0 is right; 7 is the clash)

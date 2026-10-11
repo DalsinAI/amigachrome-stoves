@@ -60,6 +60,22 @@ This folder adds broader qualification tests, which need no NDK:
 | t17 | `condition_variable_any` with `mutex`, `shared_mutex` and a lock of its own; `wait_for` timing out | 020 |
 | t18 | `ostringstream`/`istringstream` (ints, hex, doubles) in 8 threads; `cout` from several threads | 020 |
 | t19 | 1,150 short threads: one after another, in batches, detached, `async`; `thread_local` destructors | 020 |
+| t12c, t13c, t19c | t12, t13 and t19 built with `-fuse-cxa-atexit` (and `src/cxa_dso.c` for `__dso_handle`), so that `thread_local` destructors are registered | 020 |
+
+## What the tests show on AmigaOS (lab of Instance-32, 11 October)
+
+With the stove plus openamigagcc PRs #6 (libpthread) and #7 (libnix FPCR),
+t1-t11, t14-t17, t3 (20 runs) and t12c/t13c pass, and t7-t9 equal `expected/`
+for the 020 and the 060. The live stove fails t3 and t7-060. Still failing
+with both fixes, each a problem of its own:
+
+- **t12, t13, t19: no `thread_local` destructor runs.** The stove defaults to
+  `-fno-use-cxa-atexit`, and GCC then emits no `__cxa_thread_atexit` call for a
+  `thread_local`. Built with `-fuse-cxa-atexit` (t12c, t13c) they pass.
+- **t19: `std::thread::detach()` throws** `system_error` ("No such process"):
+  libpthread's `pthread_detach` is not implemented and returns ESRCH.
+- **t18 ends the Shell running it** soon after 8 threads start formatting
+  doubles with `ostringstream`. Still open.
 
 ```sh
 cd os32-gcc16/tests

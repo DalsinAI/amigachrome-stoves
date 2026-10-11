@@ -145,6 +145,21 @@ If EXISTS bin/t19-020
   bin/t19-020 >results/t19-020.txt
   Echo "t19-020 rc=$RC" >>results/summary.txt
 EndIf
+If EXISTS bin/t12c-020
+  Echo "t12c-020 ..."
+  bin/t12c-020 >results/t12c-020.txt
+  Echo "t12c-020 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t13c-020
+  Echo "t13c-020 ..."
+  bin/t13c-020 >results/t13c-020.txt
+  Echo "t13c-020 rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t19c-020
+  Echo "t19c-020 ..."
+  bin/t19c-020 >results/t19c-020.txt
+  Echo "t19c-020 rc=$RC" >>results/summary.txt
+EndIf
 If EXISTS bin/t3-020
   Echo "t3-020 ..."
   bin/t3-020 >results/t3-020.txt
