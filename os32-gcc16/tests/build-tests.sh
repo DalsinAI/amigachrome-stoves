@@ -42,12 +42,12 @@ run "${P}gcc" -m68020 -m68881 $COMMON -o bin/t3f-020 src/t3f_pthread.c -lpthread
 run "${P}gcc" -m68020 $COMMON -mlong-jump-table-offsets -o bin/t5-020 src/t5_bigswitch.c && ok bin/t5-020 || bad bin/t5-020
 # t6: the FPCR clash (exit code 0 is right; 7 is the clash)
 run "${P}gcc" -m68040 -m68881 $COMMON -o bin/t6-040 src/t6_fpcr.c && ok bin/t6-040 || bad bin/t6-040
-# t7..t10 for the 020 and the 060 (no FPU)
+# t7..t10 for the 020 and the 060 (no FPU; the 060 multilib takes its soft float from -lm)
 for c in 020 060; do
     case $c in 020) CF="-m68020 -m68881" ;; 060) CF="-m68060" ;; esac
     BR="$OPENTLS/third_party/bearssl"
     BRDEFS="-DBR_USE_UNIX_TIME=0 -DBR_USE_WIN32_TIME=0 -DBR_USE_URANDOM=0 -DBR_USE_WIN32_RAND=0 -DBR_RDRAND=0 -DBR_AES_X86NI=0 -DBR_SSE2=0 -DBR_POWER8=0 -DBR_INT128=0 -DBR_UMUL128=0 -DBR_64=0 -DBR_LE_UNALIGNED=0 -DBR_BE_UNALIGNED=0 -DOT_LOMUL=1"
-    run "${P}gcc" $CF $COMMON -DHOST -o bin/t7-$c src/t7_64bit.c && ok bin/t7-$c || bad bin/t7-$c
+    run "${P}gcc" $CF $COMMON -DHOST -o bin/t7-$c src/t7_64bit.c -lm && ok bin/t7-$c || bad bin/t7-$c
     # OpenTLS's own flags for BearSSL (build-amiga-tls.sh), plus this driver
     run "${P}gcc" $CF $COMMON -fno-tree-loop-distribute-patterns -DHOST $BRDEFS -I"$BR/inc" -I"$BR/src" -o bin/t8-$c src/t8_bearssl_kat.c "$BR"/src/*/*.c && ok bin/t8-$c || bad bin/t8-$c
     run "${P}gcc" $CF $COMMON -fno-tree-loop-distribute-patterns -DHOST -I"$OPENTLS/include" -I"$OPENTLS/library" -o bin/t9-$c src/t9_opencrypto_kat.c "$OPENTLS"/src/opencrypto_*.c && ok bin/t9-$c || bad bin/t9-$c
