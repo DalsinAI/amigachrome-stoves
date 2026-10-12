@@ -8,6 +8,18 @@ the memmove direction (0004) and the 64-bit libcall argument pushed from a stack
 slot that broke `-m68060`/`-m68040` builds (0008). openamigagcc's
 `tests/repro/prove.sh` proves each of those under qemu-m68k.
 
+On 12 October 2026 the stove on the Team's PC was brought up to openamigagcc's
+`main` for C++ and threads (its `README.txt` and `patches/` record it):
+
+- `cc1plus` with gcc patch 0010: `-fuse-cxa-atexit` is the default, so a
+  `thread_local`'s destructor runs (#12);
+- libnix with patches 0004-0006: FPCR back to 0 after the maths libraries open
+  (#7), `__cxa_atexit` and `__dso_handle` (#12), and a `setlocale()` that is safe
+  from several threads (#11);
+- libpthread with aros-stuff 0001-0004: a thread's record never moves (#6),
+  `pthread_detach` (#8), a CAS that returns the old value (#9), and a
+  `pthread_join` that waits for a signal (#10).
+
 This folder adds broader qualification tests, which need no NDK:
 
 - `tests/`: nineteen programs (and t3's pieces, t3a-t3h) built with `tests/build-tests.sh`, run on an instance
@@ -62,7 +74,19 @@ This folder adds broader qualification tests, which need no NDK:
 | t19 | 1,150 short threads: one after another, in batches, detached, `async`; `thread_local` destructors | 020 |
 | t12c, t13c, t19c | t12, t13 and t19 built with `-fuse-cxa-atexit` (and `src/cxa_dso.c` for `__dso_handle`), so that `thread_local` destructors are registered | 020 |
 
-## What the tests show on AmigaOS (lab of Instance-32, 11 October)
+## What the tests show on AmigaOS (lab of Instance-32, 12 October)
+
+Built with the stove as it is after the 12 October update and run in a lab copy
+of Instance-32: **every test passes**. t1-t7, t10-t19, t3a-t3f, t3, t12c, t13c and
+t19c return 0, t7 equals `expected/` for the 020 and the 060, and openamigagcc's
+`tests/cxx/dtors.cpp` and `tests/libnix/setlocale_threads.c` pass. t18 passed six
+runs out of six; before the update it hung the machine. t8 and t9 need an
+openamigatls checkout and were not built.
+
+C++ programs built with `-fbaserel32` and threads still hang, and `-fbaserel` C++
+programs don't link; both were so before.
+
+## What the tests showed on AmigaOS (lab of Instance-32, 11 October)
 
 With the stove plus openamigagcc PRs #6 (libpthread) and #7 (libnix FPCR),
 t1-t11, t14-t17, t3 (20 runs) and t12c/t13c pass, and t7-t9 equal `expected/`
