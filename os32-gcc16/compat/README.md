@@ -8,7 +8,7 @@ long double maths through double (`ldbl/`). `fenv.h` and `uchar.h` are header-on
 
     sh build.sh [OUT_DIR]        STOVE defaults to ~/AmigaChrome/stoves/os32-gcc16
 
-`build.sh` reproduces the stove's installed `compat/libos32compat.a` object for object
+`build.sh` makes three libraries: `libos32compat.a` (absolute), `libb/libos32compat.a` (`-fbaserel`) and `libb32/libos32compat.a` (`-fbaserel32`). Base-relative programs need their own build: the absolute one uses a4 as a scratch register in the malloc wrappers, and a `-fbaserel32` program linked with it hangs. The absolute one reproduces the stove's installed `compat/libos32compat.a` object for object
 (the same disassembly for all 64 members, checked against the stove installed on daletop).
 Link it after libstdc++: `-lstdc++ -L<stove>/compat -los32compat`, with
 `-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=free` for the aligned allocator.

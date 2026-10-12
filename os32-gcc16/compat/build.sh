@@ -14,18 +14,25 @@ P=$STOVE/prefix/bin/m68k-amigaos-
 # the long double wrappers at -Os -fno-builtin (so each calls the double function).
 COMPAT="-m68020 -m68881 -O2 -Wall"
 LDBL="-m68020 -m68881 -Os -fno-builtin -Wall"
-mkdir -p "$OUT/obj"
-objs=
-for s in "$HERE"/os32compat.c "$HERE"/os32compat_malloc.c "$HERE"/os32compat_math.c; do
-    o="$OUT/obj/$(basename "${s%.c}").o"; "${P}gcc" $COMPAT -c "$s" -o "$o"; objs="$objs $o"
-done
-for s in "$HERE"/ldbl/*.c; do
-    o="$OUT/obj/$(basename "${s%.c}").o"; "${P}gcc" $LDBL -c "$s" -o "$o"; objs="$objs $o"
-done
-for s in "$HERE"/os32compat_cxx.cpp "$HERE"/os32compat_statvfs.cpp; do
-    o="$OUT/obj/$(basename "${s%.cpp}").o"; "${P}g++" $COMPAT -c "$s" -o "$o"; objs="$objs $o"
-done
-rm -f "$OUT/libos32compat.a"
-# shellcheck disable=SC2086
-"${P}ar" rcs "$OUT/libos32compat.a" $objs
-echo "$OUT/libos32compat.a ($(wc -c < "$OUT/libos32compat.a") bytes, $(echo $objs | wc -w) objects)"
+# One library per code model: OUT/libos32compat.a (absolute), OUT/libb/ (-fbaserel) and
+# OUT/libb32/ (-fbaserel32). Base-relative programs need their own: absolute-model code
+# uses a4 as a scratch register, and the malloc wrappers call back into libnix.
+build() {   # build SUBDIR EXTRA_FLAGS
+    o_dir="$OUT/obj$1"; mkdir -p "$o_dir" "$OUT$1"; objs=
+    for s in "$HERE"/os32compat.c "$HERE"/os32compat_malloc.c "$HERE"/os32compat_math.c; do
+        o="$o_dir/$(basename "${s%.c}").o"; "${P}gcc" $COMPAT $2 -c "$s" -o "$o"; objs="$objs $o"
+    done
+    for s in "$HERE"/ldbl/*.c; do
+        o="$o_dir/$(basename "${s%.c}").o"; "${P}gcc" $LDBL $2 -c "$s" -o "$o"; objs="$objs $o"
+    done
+    for s in "$HERE"/os32compat_cxx.cpp "$HERE"/os32compat_statvfs.cpp; do
+        o="$o_dir/$(basename "${s%.cpp}").o"; "${P}g++" $COMPAT $2 -c "$s" -o "$o"; objs="$objs $o"
+    done
+    rm -f "$OUT$1/libos32compat.a"
+    # shellcheck disable=SC2086
+    "${P}ar" rcs "$OUT$1/libos32compat.a" $objs
+    echo "$OUT$1/libos32compat.a ($(wc -c < "$OUT$1/libos32compat.a") bytes, $(echo $objs | wc -w) objects)"
+}
+build "" ""
+build /libb -fbaserel
+build /libb32 -fbaserel32

@@ -13,8 +13,19 @@ cd "$(dirname "$0")"
 STOVE=${STOVE:-"$HOME/AmigaChrome/stoves/os32-gcc16"}
 OPENTLS=${OPENTLS:-"$HOME/openamigatls"}
 P="$STOVE/prefix/bin/m68k-amigaos-"
-COMPAT="-L$STOVE/compat -los32compat -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=free -Wl,-u,___wrap_malloc -Wl,-u,___wrap_free -Wl,-u,___wrap_calloc -Wl,-u,___wrap_realloc"
-CXXLIBS="-lpthread -latomic -lstdc++ $COMPAT -fexceptions"
+# libos32compat for the code model in FLAGS: compat/ (absolute), compat/libb (-fbaserel)
+# or compat/libb32 (-fbaserel32). A base-relative program must not get the absolute one.
+compat_for() {   # compat_for FLAGS...
+    case " $* " in
+        *" -fbaserel32 "*) d=/libb32 ;;
+        *" -fbaserel "*) d=/libb ;;
+        *) d= ;;
+    esac
+    echo "-L$STOVE/compat$d -los32compat -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=free -Wl,-u,___wrap_malloc -Wl,-u,___wrap_free -Wl,-u,___wrap_calloc -Wl,-u,___wrap_realloc"
+}
+cxxlibs_for() { echo "-lpthread -latomic -lstdc++ $(compat_for "$@") -fexceptions"; }
+COMPAT=$(compat_for)
+CXXLIBS=$(cxxlibs_for)
 COMMON="-O2 -fno-delete-null-pointer-checks -fomit-frame-pointer"
 mkdir -p bin obj
 : > build.log
