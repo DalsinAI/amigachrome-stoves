@@ -83,13 +83,15 @@ logged() {
 if [ "$VERIFY_ONLY" = 1 ] || ! done_step sources; then
     while read -r sha name url; do
         case "$sha" in ''|'#'*) continue ;; esac
+        # "-": not pinned (GNU's keyring), so fetched fresh every time.
+        [ "$sha" = - ] && [ "$VERIFY_ONLY" != 1 ] && rm -f "$PORTS/$name"
         if [ ! -f "$PORTS/$name" ]; then
             [ "$VERIFY_ONLY" = 1 ] && { echo "missing: $name" >&2; exit 3; }
             echo "fetching $name"
             curl -fsSL -o "$PORTS/$name.part" "$url"
             mv "$PORTS/$name.part" "$PORTS/$name"
         fi
-        echo "$sha  $PORTS/$name" | sha256sum -c --quiet - || { echo "checksum mismatch: $name" >&2; exit 4; }
+        [ "$sha" = - ] || echo "$sha  $PORTS/$name" | sha256sum -c --quiet - || { echo "checksum mismatch: $name" >&2; exit 4; }
     done < "$HERE/sources.lock"
     sigs="$(awk '$2 ~ /\.sig$/ { print $2 }' "$HERE/sources.lock")"
     if [ -n "$sigs" ] && command -v gpgv >/dev/null 2>&1; then
