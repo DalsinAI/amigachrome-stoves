@@ -1,0 +1,2991 @@
+diff --git a/bfd/Makefile.am b/bfd/Makefile.am
+index e4df0544..46974934 100644
+--- a/bfd/Makefile.am
++++ b/bfd/Makefile.am
+@@ -293,6 +293,7 @@ BFD32_BACKENDS = \
+ 	elf-sframe.lo \
+ 	elf-solaris2.lo \
+ 	elf-strtab.lo \
++	elf-amigaos.lo \
+ 	elf-vxworks.lo \
+ 	elf.lo \
+ 	elf32-am33lin.lo \
+@@ -428,6 +429,7 @@ BFD32_BACKENDS_CFILES = \
+ 	elf-sframe.c \
+ 	elf-solaris2.c \
+ 	elf-strtab.c \
++	elf-amigaos.c \
+ 	elf-vxworks.c \
+ 	elf.c \
+ 	elf32-am33lin.c \
+@@ -711,7 +713,7 @@ SOURCE_HFILES = \
+ 	elf32-tic6x.h elf32-tilegx.h elf32-tilepro.h elf32-v850.h \
+ 	elf64-hppa.h elf64-ppc.h elf64-tilegx.h elf-attrs.h \
+ 	elf-bfd.h elfcode.h elfcore.h elf-hppa.h elf-linker-x86.h \
+-	elf-linux-core.h elf-s390.h elf-vxworks.h \
++	elf-linux-core.h elf-s390.h elf-amigaos.h elf-vxworks.h \
+ 	elfxx-aarch64.h elfxx-ia64.h elfxx-mips.h elfxx-riscv.h \
+ 	elfxx-sparc.h elfxx-tilegx.h elfxx-x86.h elfxx-loongarch.h \
+ 	genlink.h go32stub.h hidden.h \
+diff --git a/bfd/Makefile.in b/bfd/Makefile.in
+index 14512cf6..639ee014 100644
+--- a/bfd/Makefile.in
++++ b/bfd/Makefile.in
+@@ -762,6 +762,7 @@ BFD32_BACKENDS = \
+ 	elf-sframe.lo \
+ 	elf-solaris2.lo \
+ 	elf-strtab.lo \
++	elf-amigaos.lo \
+ 	elf-vxworks.lo \
+ 	elf.lo \
+ 	elf32-am33lin.lo \
+@@ -897,6 +898,7 @@ BFD32_BACKENDS_CFILES = \
+ 	elf-sframe.c \
+ 	elf-solaris2.c \
+ 	elf-strtab.c \
++	elf-amigaos.c \
+ 	elf-vxworks.c \
+ 	elf.c \
+ 	elf32-am33lin.c \
+@@ -1177,7 +1179,7 @@ SOURCE_HFILES = \
+ 	elf32-tic6x.h elf32-tilegx.h elf32-tilepro.h elf32-v850.h \
+ 	elf64-hppa.h elf64-ppc.h elf64-tilegx.h elf-attrs.h \
+ 	elf-bfd.h elfcode.h elfcore.h elf-hppa.h elf-linker-x86.h \
+-	elf-linux-core.h elf-s390.h elf-vxworks.h \
++	elf-linux-core.h elf-s390.h elf-amigaos.h elf-vxworks.h \
+ 	elfxx-aarch64.h elfxx-ia64.h elfxx-mips.h elfxx-riscv.h \
+ 	elfxx-sparc.h elfxx-tilegx.h elfxx-x86.h elfxx-loongarch.h \
+ 	genlink.h go32stub.h hidden.h \
+@@ -1560,6 +1562,7 @@ distclean-compile:
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dwarf2.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecoff.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ecofflink.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf-amigaos.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf-attrs.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf-eh-frame.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf-ifunc.Plo@am__quote@
+diff --git a/bfd/bfd-in2.h b/bfd/bfd-in2.h
+index e49d6731..f8f72729 100644
+--- a/bfd/bfd-in2.h
++++ b/bfd/bfd-in2.h
+@@ -4139,6 +4139,12 @@ enum bfd_reloc_code_real
+   BFD_RELOC_PPC64_GOT_DTPREL_PCREL34,
+   BFD_RELOC_PPC64_TLS_PCREL,
+ 
++  /* AmigaOS PowerPC r2 base relative addressing into data section.  */
++  BFD_RELOC_PPC_AMIGAOS_BREL,
++  BFD_RELOC_PPC_AMIGAOS_BREL_LO,
++  BFD_RELOC_PPC_AMIGAOS_BREL_HI,
++  BFD_RELOC_PPC_AMIGAOS_BREL_HA,
++
+   /* The type of reloc used to build a constructor table - at the moment
+      probably a 32 bit wide absolute relocation, but the target can choose.
+      It generally does map to one of the other relocation types.  */
+diff --git a/bfd/config.bfd b/bfd/config.bfd
+index 02a1a685..91c34dd4 100644
+--- a/bfd/config.bfd
++++ b/bfd/config.bfd
+@@ -1019,6 +1019,10 @@ case "${targ}" in
+ 	targ_cflags=-DSMALL_ARCHIVE;;
+     esac
+     ;;
++  powerpc-*-amiga*)
++    targ_defvec=powerpc_elf32_amigaos_vec
++    targ_selvecs="powerpc_elf32_vec"
++    ;;
+ #ifdef BFD64
+   powerpc64-*-aix*)
+     targ_defvec=rs6000_xcoff64_vec
+diff --git a/bfd/configure b/bfd/configure
+index 1b829384..659529e4 100755
+--- a/bfd/configure
++++ b/bfd/configure
+@@ -16026,6 +16026,7 @@ do
+     pj_elf32_vec)		 tb="$tb elf32-pj.lo elf32.lo $elf" ;;
+     pj_elf32_le_vec)		 tb="$tb elf32-pj.lo elf32.lo $elf" ;;
+     powerpc_boot_vec)		 tb="$tb ppcboot.lo" ;;
++    powerpc_elf32_amigaos_vec)	 tb="$tb $elf32_powerpc elf-amigaos.lo $elf" ;;
+     powerpc_elf32_vec)		 tb="$tb $elf32_powerpc $elf" ;;
+     powerpc_elf32_le_vec)	 tb="$tb $elf32_powerpc $elf" ;;
+     powerpc_elf32_fbsd_vec)	 tb="$tb $elf32_powerpc $elf" ;;
+@@ -16193,6 +16194,7 @@ if test x${all_targets} = xtrue ; then
+   assocvecs=$f
+   TDEFINES="$TDEFINES -DOBJ_MAYBE_ELF -DOBJ_MAYBE_ELF_ATTRIBUTES -DOBJ_MAYBE_ELF_SFRAME"
+   TDEFINES="$TDEFINES -DOBJ_MAYBE_ELF_SOLARIS2 -DOBJ_MAYBE_ELF_VXWORKS"
++  TDEFINES="$TDEFINES -DOBJ_MAYBE_ELF_AMIGAOS"
+ else	# all_targets is true
+   # Only set these if they will be nonempty, for the clever echo.
+   havevecs=
+@@ -16211,6 +16213,7 @@ else	# all_targets is true
+     elf-sframe.*) TDEFINES="$TDEFINES -DOBJ_MAYBE_ELF_SFRAME" ;;
+     elf-solaris2.*) TDEFINES="$TDEFINES -DOBJ_MAYBE_ELF_SOLARIS2" ;;
+     elf-vxworks.*) TDEFINES="$TDEFINES -DOBJ_MAYBE_ELF_VXWORKS" ;;
++    elf-amigaos.*) TDEFINES="$TDEFINES -DOBJ_MAYBE_ELF_AMIGAOS" ;;
+     esac
+   done
+ fi	# all_targets is true
+diff --git a/bfd/configure.ac b/bfd/configure.ac
+index c30a75ba..f225f491 100644
+--- a/bfd/configure.ac
++++ b/bfd/configure.ac
+@@ -567,6 +567,7 @@ do
+     pj_elf32_vec)		 tb="$tb elf32-pj.lo elf32.lo $elf" ;;
+     pj_elf32_le_vec)		 tb="$tb elf32-pj.lo elf32.lo $elf" ;;
+     powerpc_boot_vec)		 tb="$tb ppcboot.lo" ;;
++    powerpc_elf32_amigaos_vec)	 tb="$tb $elf32_powerpc elf-amigaos.lo $elf" ;;
+     powerpc_elf32_vec)		 tb="$tb $elf32_powerpc $elf" ;;
+     powerpc_elf32_le_vec)	 tb="$tb $elf32_powerpc $elf" ;;
+     powerpc_elf32_fbsd_vec)	 tb="$tb $elf32_powerpc $elf" ;;
+@@ -734,6 +735,7 @@ if test x${all_targets} = xtrue ; then
+   assocvecs=$f
+   TDEFINES="$TDEFINES -DOBJ_MAYBE_ELF -DOBJ_MAYBE_ELF_ATTRIBUTES -DOBJ_MAYBE_ELF_SFRAME"
+   TDEFINES="$TDEFINES -DOBJ_MAYBE_ELF_SOLARIS2 -DOBJ_MAYBE_ELF_VXWORKS"
++  TDEFINES="$TDEFINES -DOBJ_MAYBE_ELF_AMIGAOS"
+ else	# all_targets is true
+   # Only set these if they will be nonempty, for the clever echo.
+   havevecs=
+@@ -752,6 +754,7 @@ else	# all_targets is true
+     elf-sframe.*) TDEFINES="$TDEFINES -DOBJ_MAYBE_ELF_SFRAME" ;;
+     elf-solaris2.*) TDEFINES="$TDEFINES -DOBJ_MAYBE_ELF_SOLARIS2" ;;
+     elf-vxworks.*) TDEFINES="$TDEFINES -DOBJ_MAYBE_ELF_VXWORKS" ;;
++    elf-amigaos.*) TDEFINES="$TDEFINES -DOBJ_MAYBE_ELF_AMIGAOS" ;;
+     esac
+   done
+ fi	# all_targets is true
+diff --git a/bfd/elf-amigaos.c b/bfd/elf-amigaos.c
+new file mode 100644
+index 00000000..c7c563f0
+--- /dev/null
++++ b/bfd/elf-amigaos.c
+@@ -0,0 +1,44 @@
++/* AmigaOS 4 support for ELF
++   Copyright (C) 2005-2026 Free Software Foundation, Inc.
++
++   This file is part of BFD, the Binary File Descriptor library.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
++
++/* This file provides routines used by the AmigaOS 4 (ppc-amigaos)
++   target.  */
++
++#include "sysdep.h"
++#include "bfd.h"
++#include "libbfd.h"
++#include "elf-bfd.h"
++#include "elf-amigaos.h"
++#include "elf/amigaos.h"
++
++/* Add dynamic tags.
++   AmigaOS: Flag it as a version 2 dynamic binary.  */
++
++bool
++_bfd_elf_amigaos_add_dynamic_tags (struct bfd_link_info *info)
++{
++#ifdef DEBUG
++  printf ("Target amigaos-ppc needs additional marker symbol "
++	  "DT_AMIGAOS_DYNVERSION to mark version used.\n");
++#endif
++
++  struct elf_link_hash_table *htab = elf_hash_table (info);
++
++  return (htab->target_os != is_amigaos
++	  || _bfd_elf_add_dynamic_entry (info, DT_AMIGAOS_DYNVERSION, 2));
++}
+diff --git a/bfd/elf-amigaos.h b/bfd/elf-amigaos.h
+new file mode 100644
+index 00000000..6c8805df
+--- /dev/null
++++ b/bfd/elf-amigaos.h
+@@ -0,0 +1,35 @@
++/* AmigaOS 4 support for ELF
++   Copyright (C) 2005-2026 Free Software Foundation, Inc.
++
++   This file is part of BFD, the Binary File Descriptor library.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 3 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
++
++#include "elf/common.h"
++#include "elf/internal.h"
++
++#ifdef OBJ_MAYBE_ELF_AMIGAOS
++
++bool _bfd_elf_amigaos_add_dynamic_tags
++  (struct bfd_link_info *) ATTRIBUTE_HIDDEN;
++
++#else /* !OBJ_MAYBE_ELF_AMIGAOS */
++
++static inline bool
++_bfd_elf_amigaos_add_dynamic_tags (struct bfd_link_info *info ATTRIBUTE_UNUSED)
++{
++  return true;
++}
++
++#endif /* OBJ_MAYBE_ELF_AMIGAOS */
+diff --git a/bfd/elf-bfd.h b/bfd/elf-bfd.h
+index 88d35925..156ee48f 100644
+--- a/bfd/elf-bfd.h
++++ b/bfd/elf-bfd.h
+@@ -612,7 +612,8 @@ enum elf_target_os
+ {
+   is_normal,
+   is_solaris,	/* Solaris.  */
+-  is_vxworks	/* VxWorks.  */
++  is_vxworks,	/* VxWorks.  */
++  is_amigaos	/* AmigaOS.  */
+ };
+ 
+ /* Used by bfd_sym_from_r_symndx to cache a small number of local
+diff --git a/bfd/elf32-ppc.c b/bfd/elf32-ppc.c
+index e3b54336..751f4a3b 100644
+--- a/bfd/elf32-ppc.c
++++ b/bfd/elf32-ppc.c
+@@ -22,6 +22,7 @@
+ /* The assembler should generate a full set of section symbols even
+    when they appear unused.  The linux kernel build tool recordmcount
+    needs them.  */
++// ML: TODO: Keep for Amiga?
+ #define TARGET_KEEP_UNUSED_SECTION_SYMBOLS true
+ 
+ #include "sysdep.h"
+@@ -31,12 +32,15 @@
+ #include "libbfd.h"
+ #include "elf-bfd.h"
+ #include "elf/ppc.h"
++#include "elf/amigaos.h"
+ #include "elf32-ppc.h"
++#include "elf-amigaos.h"
+ #include "elf-vxworks.h"
+ #include "dwarf2.h"
+ #include "opcode/ppc.h"
+ 
+ /* All users of this file have bfd_octets_per_byte (abfd, sec) == 1.  */
++// ML: TODO: Keep for Amiga? Fist for amigao
+ #define OCTETS_PER_BYTE(ABFD, SEC) 1
+ 
+ typedef enum split16_format_type
+@@ -578,6 +582,27 @@ static reloc_howto_type ppc_elf_howto_raw[] = {
+   /* Relocation not handled: R_PPC_EMB_RELST_HA */
+   /* Relocation not handled: R_PPC_EMB_BIT_FLD */
+ 
++  /* AmigaOS r2 base relative relocations (gcc -mbaserel).  The value
++     is relative to the start of the output .data section.  Note that
++     the HOW size argument is in bytes (binutils >= 2.39).  */
++
++  /* A standard 32 bit base relative relocation.  */
++  HOW (R_PPC_AMIGAOS_BREL, 4, 32, 0xffffffff, 0, false, bitfield,
++       bfd_elf_generic_reloc),
++
++  /* A 16 bit base relative relocation without overflow.  */
++  HOW (R_PPC_AMIGAOS_BREL_LO, 2, 16, 0xffff, 0, false, dont,
++       bfd_elf_generic_reloc),
++
++  /* The high order 16 bits of a base relative address.  */
++  HOW (R_PPC_AMIGAOS_BREL_HI, 2, 16, 0xffff, 16, false, dont,
++       bfd_elf_generic_reloc),
++
++  /* The high order 16 bits of a base relative address, plus 1 if the contents
++     of the low 16 bits, treated as a signed number, is negative.  */
++  HOW (R_PPC_AMIGAOS_BREL_HA, 2, 16, 0xffff, 16, false, dont,
++       ppc_elf_addr16_ha_reloc),
++
+   /* PC relative relocation against either _SDA_BASE_ or _SDA2_BASE_, filling
+      in the 16 bit signed offset from the appropriate base, and filling in the
+      register field with the appropriate register (0, 2, or 13).  */
+@@ -823,6 +848,10 @@ ppc_elf_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
+     case BFD_RELOC_PPC_EMB_RELST_HA:	r = R_PPC_EMB_RELST_HA;		break;
+     case BFD_RELOC_PPC_EMB_BIT_FLD:	r = R_PPC_EMB_BIT_FLD;		break;
+     case BFD_RELOC_PPC_EMB_RELSDA:	r = R_PPC_EMB_RELSDA;		break;
++    case BFD_RELOC_PPC_AMIGAOS_BREL:	r = R_PPC_AMIGAOS_BREL;		break;
++    case BFD_RELOC_PPC_AMIGAOS_BREL_LO:	r = R_PPC_AMIGAOS_BREL_LO;	break;
++    case BFD_RELOC_PPC_AMIGAOS_BREL_HI:	r = R_PPC_AMIGAOS_BREL_HI;	break;
++    case BFD_RELOC_PPC_AMIGAOS_BREL_HA:	r = R_PPC_AMIGAOS_BREL_HA;	break;
+     case BFD_RELOC_PPC_VLE_REL8:	r = R_PPC_VLE_REL8;		break;
+     case BFD_RELOC_PPC_VLE_REL15:	r = R_PPC_VLE_REL15;		break;
+     case BFD_RELOC_PPC_VLE_REL24:	r = R_PPC_VLE_REL24;		break;
+@@ -2316,7 +2345,16 @@ ppc_elf_create_got (bfd *abfd, struct bfd_link_info *info)
+     return false;
+ 
+   htab = ppc_elf_hash_table (info);
+-  if (htab->elf.target_os != is_vxworks)
++  if (htab->elf.target_os == is_amigaos )
++	{
++	  /* The powerpc .got has a blrl instruction in it.  Mark it
++	 executable.  */
++      flagword flags = (SEC_ALLOC | SEC_LOAD | SEC_HAS_CONTENTS
++			| SEC_IN_MEMORY | SEC_LINKER_CREATED);
++      if (!bfd_set_section_flags (htab->elf.sgot, flags))
++	return false;
++	}
++  else if (htab->elf.target_os != is_vxworks)
+     {
+       /* The powerpc .got has a blrl instruction in it.  Mark it
+ 	 executable.  */
+@@ -2484,6 +2522,8 @@ ppc_elf_create_dynamic_sections (bfd *abfd, struct bfd_link_info *info)
+ 
+   s = htab->elf.splt;
+   flags = SEC_ALLOC | SEC_CODE | SEC_LINKER_CREATED;
++  if (htab->elf.target_os == is_amigaos )
++     flags |= SEC_READONLY;
+   if (htab->plt_type == PLT_VXWORKS)
+     /* The VxWorks PLT is a loaded section with contents.  */
+     flags |= SEC_HAS_CONTENTS | SEC_LOAD | SEC_READONLY;
+@@ -3139,6 +3179,13 @@ ppc_elf_check_relocs (bfd *abfd,
+ 	    }
+ 	  break;
+ 
++	  /* These don't work with a GOT */
++	case R_PPC_AMIGAOS_BREL:
++	case R_PPC_AMIGAOS_BREL_HI:
++	case R_PPC_AMIGAOS_BREL_LO:
++	case R_PPC_AMIGAOS_BREL_HA:
++	  break;
++
+ 	case R_PPC_VLE_REL8:
+ 	case R_PPC_VLE_REL15:
+ 	case R_PPC_VLE_REL24:
+@@ -4900,6 +4947,7 @@ ppc_elf_adjust_dynamic_symbol (struct bfd_link_info *info,
+   if (ELIMINATE_COPY_RELOCS
+       && !ppc_elf_hash_entry (h)->has_sda_refs
+       && htab->elf.target_os != is_vxworks
++	  && htab->elf.target_os != is_amigaos
+       && !h->def_regular
+       && !alias_readonly_dynrelocs (h))
+     return true;
+@@ -5886,6 +5934,9 @@ ppc_elf_late_size_sections (struct bfd_link_info *info)
+       if (!_bfd_elf_maybe_vxworks_add_dynamic_tags (info, relocs))
+ 	return false;
+ 
++      if (!_bfd_elf_amigaos_add_dynamic_tags (info))
++	return false;
++
+       if (htab->plt_type == PLT_NEW
+ 	  && htab->glink != NULL
+ 	  && htab->glink->size != 0)
+@@ -6979,6 +7030,7 @@ ppc_elf_relocate_section (struct bfd_link_info *info,
+   Elf_Internal_Rela *relend;
+   Elf_Internal_Rela outrel;
+   asection *got2;
++  asection *data_section = NULL;
+   bfd_vma *local_got_offsets;
+   bool ret = true;
+   bfd_vma d_offset = (bfd_big_endian (input_bfd) ? 2 : 0);
+@@ -8044,6 +8096,51 @@ ppc_elf_relocate_section (struct bfd_link_info *info,
+ 	case R_PPC_UADDR16:
+ 	  goto dodyn;
+ 
++	case R_PPC_AMIGAOS_BREL:
++	case R_PPC_AMIGAOS_BREL_HI:
++	case R_PPC_AMIGAOS_BREL_LO:
++	case R_PPC_AMIGAOS_BREL_HA:
++	{
++		if (data_section == NULL)
++			data_section = bfd_get_section_by_name (info->output_bfd, ".data");
++		if (data_section != NULL)
++		{
++			if (sec)
++			{
++				const char *name = bfd_section_name (sec->output_section);
++				if (strcmp (name, ".sdata") != 0
++					&& strcmp (name, ".sbss") != 0
++					&& strcmp (name, ".data") != 0
++					&& strcmp (name, ".bss") != 0
++					&& strncmp (name, ".ctors", 6) != 0
++					&& strncmp (name, ".dtors", 6) != 0)
++				{
++					_bfd_error_handler
++						/* xgettext:c-format */
++						(_("%pB: the target (%s) of a %s relocation is in the wrong output section (%s)"),
++							input_bfd,
++							sym_name,
++							howto->name,
++							name);
++				}			
++			}
++
++			addend -= data_section->output_section->vma;
++
++			if (r_type == R_PPC_AMIGAOS_BREL_HA)
++			addend += ((relocation + addend) & 0x8000) << 1;
++		}
++		else 
++		{
++			_bfd_error_handler
++				/* xgettext:c-format */
++				(_("%pB: the target (%s) has not '.data' section"),
++					input_bfd,
++					sym_name);
++		}
++	}
++	break;
++
+ 	case R_PPC_VLE_REL8:
+ 	case R_PPC_VLE_REL15:
+ 	case R_PPC_VLE_REL24:
+@@ -10425,6 +10522,168 @@ ppc_elf_finish_dynamic_sections (struct bfd_link_info *info,
+ 
+ #include "elf32-target.h"
+ 
++#ifdef OBJ_MAYBE_ELF_AMIGAOS
++
++/* ML: TODO: AmigaOS Target */
++
++#undef  TARGET_LITTLE_SYM
++#undef  TARGET_LITTLE_NAME
++
++#undef  TARGET_BIG_SYM
++#define TARGET_BIG_SYM  powerpc_elf32_amigaos_vec
++#undef  TARGET_BIG_NAME
++#define TARGET_BIG_NAME "elf32-powerpc-amigaos"
++
++#undef ELF_TARGET_OS
++#define ELF_TARGET_OS		is_amigaos
++
++/* The name of the readonly data section.  */
++#define RDATA_SECTION_NAME ".rodata"
++
++/* If we have .rodata section we need to bump the
++programm headers, so that it is in it own segment. */ 
++
++
++static int
++ppc_elf_amigaos_additional_program_headers (
++	bfd *abfd,
++	struct bfd_link_info *info ATTRIBUTE_UNUSED)
++{
++	int ret = ppc_elf_additional_program_headers(abfd,info);
++
++	/* See if we need a RDATA_SECTION_NAME segment.  */
++	if (bfd_get_section_by_name (abfd, RDATA_SECTION_NAME))
++	{
++#ifdef DEBUG
++		printf ("Target amigaos-pcc needs addtional programm header, because .rodata section is present, thus we add 1 to %d\n",ret); 
++#endif
++		++ret;
++	}
++
++	return ret;
++}
++
++static bool
++ppc_elf_amigaos_modify_segment_map (
++	bfd *abfd,
++	struct bfd_link_info *info ATTRIBUTE_UNUSED)
++{
++	/* If there is a .rodata section, we need a own segment for it.  */
++	asection *roSection = bfd_get_section_by_name (abfd, RDATA_SECTION_NAME);
++	if( roSection != NULL ) 
++	{
++#ifdef DEBUG
++		printf ("Target amigaos-pcc needs .rodata section in aseparate segment from .text and .plt\n"); 
++#endif
++		for( struct elf_segment_map *segment = elf_seg_map (abfd);segment != NULL;segment = segment->next ) 
++		{
++			if( segment->p_type == PT_LOAD && segment->count > 1 )
++			{
++				for( unsigned int index = 0;index < segment->count;index++ )
++				{
++					if( segment->sections[index] == roSection ) 
++					{
++#ifdef DEBUG
++						printf ("Segment found for .rodata at index %d of %d sections\n",index,segment->count); 
++#endif
++				
++						if( index + 1 < segment->count )
++						{
++							struct elf_segment_map *nextSegment = bfd_zalloc (abfd,sizeof (struct elf_segment_map) + ( (segment->count - ( index + 2 )) * sizeof ( segment->sections[0]) ) );
++							if( nextSegment == NULL ) 
++								return false;
++						
++							nextSegment->count = segment->count - (index + 1);
++							memcpy (nextSegment->sections, segment->sections + index + 1,nextSegment->count * sizeof (segment->sections[0]));
++							nextSegment->p_type = PT_LOAD;
++							nextSegment->p_flags = PF_R;
++							nextSegment->next = segment->next;
++							segment->next = nextSegment;
++						}
++						
++						segment->count = 1;
++
++						if( index != 0 )
++						{
++							segment->count = index;
++							struct elf_segment_map *nextSegment = bfd_zalloc (abfd,sizeof (struct elf_segment_map));
++							if( nextSegment == NULL )
++								return false;
++
++							nextSegment->p_type = PT_LOAD;
++							nextSegment->p_flags = PF_R;
++							nextSegment->count = 1;
++							nextSegment->sections[0] = roSection;
++							nextSegment->next = segment->next;
++							segment->next = nextSegment;
++						}
++
++						break;
++					} 
++				}		
++			}
++		}
++	}
++
++	return ppc_elf_modify_segment_map( abfd,info );
++}
++
++static bool
++ppc_elf_amigaos_finish_dynamic_symbol(
++	struct bfd_link_info *info,
++	struct elf_link_hash_entry *hashEntry,
++	Elf_Internal_Sym *sym)
++{
++#ifdef DEBUG
++	printf ("Target amigaos-pcc needs reloc R_PPC_JMP_SLOT/... having none zero value\n"); 
++#endif
++ 
++	if( ! hashEntry->def_regular || ( hashEntry->type == STT_GNU_IFUNC && !bfd_link_pic( info ) ) )
++	{
++		for( struct plt_entry *pltEntry = hashEntry->plt.plist;pltEntry != NULL;pltEntry = pltEntry->next )
++		{
++			if( pltEntry->plt.offset != (bfd_vma)-1 ) 
++			{	
++				if( ! hashEntry->def_regular && ! hashEntry->pointer_equality_needed )
++	    		{
++					/* THF: This is peculiar. The compiler generates a R_PPC_JMP_SLOT for externally referenced
++					 * symbols imported from libc.so. Relocation in elf.library requires the symbol to have it's .plt
++					 * stub value, but the linker specifically clears the value to 0, resulting in run-time
++					 * errors when the binary tries to call libc functions.
++					 */	
++					hashEntry->pointer_equality_needed = 1;
++				}
++			}
++		}
++	}
++
++  return ppc_elf_finish_dynamic_symbol( info,hashEntry,sym );
++}
++#undef elf_backend_additional_program_headers
++#define elf_backend_additional_program_headers	ppc_elf_amigaos_additional_program_headers
++
++#undef elf_backend_modify_segment_map
++#define elf_backend_modify_segment_map			ppc_elf_amigaos_modify_segment_map
++
++#undef elf_backend_finish_dynamic_symbol
++#define elf_backend_finish_dynamic_symbol	ppc_elf_amigaos_finish_dynamic_symbol
++
++#undef elf32_bed
++#define elf32_bed	elf32_powerpc_amigaos_bed
++
++#include "elf32-target.h"
++
++/* Restore the defaults changed above for the targets that follow.  */
++#undef ELF_TARGET_OS
++#undef elf_backend_additional_program_headers
++#define elf_backend_additional_program_headers	ppc_elf_additional_program_headers
++#undef elf_backend_modify_segment_map
++#define elf_backend_modify_segment_map		ppc_elf_modify_segment_map
++#undef elf_backend_finish_dynamic_symbol
++#define elf_backend_finish_dynamic_symbol	ppc_elf_finish_dynamic_symbol
++
++#endif /* OBJ_MAYBE_ELF_AMIGAOS */
++
+ /* FreeBSD Target */
+ 
+ #undef  TARGET_LITTLE_SYM
+diff --git a/bfd/elflink.c b/bfd/elflink.c
+index 0af9837a..78e3deed 100644
+--- a/bfd/elflink.c
++++ b/bfd/elflink.c
+@@ -10882,6 +10882,8 @@ elf_link_output_extsym (struct bfd_hash_entry *bh, void *data)
+     default:
+     case bfd_link_hash_new:
+     case bfd_link_hash_warning:
++	  // ML: TODO: really needed, or just  cosmetic?
++	  (*_bfd_error_handler)(_("Unexpected type (%d) of symbol %s"), h->root.type, h->root.root.string);
+       abort ();
+       return false;
+ 
+diff --git a/bfd/libbfd.h b/bfd/libbfd.h
+index 27bc0875..ca0a4910 100644
+--- a/bfd/libbfd.h
++++ b/bfd/libbfd.h
+@@ -1657,6 +1657,10 @@ static const char *const bfd_reloc_code_real_names[] = { "@@uninitialized@@",
+   "BFD_RELOC_PPC64_GOT_TPREL_PCREL34",
+   "BFD_RELOC_PPC64_GOT_DTPREL_PCREL34",
+   "BFD_RELOC_PPC64_TLS_PCREL",
++  "BFD_RELOC_PPC_AMIGAOS_BREL",
++  "BFD_RELOC_PPC_AMIGAOS_BREL_LO",
++  "BFD_RELOC_PPC_AMIGAOS_BREL_HI",
++  "BFD_RELOC_PPC_AMIGAOS_BREL_HA",
+   "BFD_RELOC_CTOR",
+   "BFD_RELOC_ARM_PCREL_BRANCH",
+   "BFD_RELOC_ARM_PCREL_BLX",
+diff --git a/bfd/po/SRC-POTFILES.in b/bfd/po/SRC-POTFILES.in
+index 40632924..c0c29b8b 100644
+--- a/bfd/po/SRC-POTFILES.in
++++ b/bfd/po/SRC-POTFILES.in
+@@ -131,6 +131,8 @@ ecoff-bfd.h
+ ecoff.c
+ ecofflink.c
+ ecoffswap.h
++elf-amigaos.c
++elf-amigaos.h
+ elf-attrs.c
+ elf-attrs.h
+ elf-bfd.h
+diff --git a/bfd/reloc.c b/bfd/reloc.c
+index 6b9e00da..f65cafc2 100644
+--- a/bfd/reloc.c
++++ b/bfd/reloc.c
+@@ -2794,6 +2794,17 @@ ENUMX
+ ENUMDOC
+   PowerPC and PowerPC64 thread-local storage relocations.
+ 
++ENUM
++  BFD_RELOC_PPC_AMIGAOS_BREL
++ENUMX
++  BFD_RELOC_PPC_AMIGAOS_BREL_LO
++ENUMX
++  BFD_RELOC_PPC_AMIGAOS_BREL_HI
++ENUMX
++  BFD_RELOC_PPC_AMIGAOS_BREL_HA
++ENUMDOC
++  AmigaOS PowerPC r2 base relative addressing into data section.
++
+ ENUM
+   BFD_RELOC_CTOR
+ ENUMDOC
+diff --git a/bfd/targets.c b/bfd/targets.c
+index fcf65041..8bea948d 100644
+--- a/bfd/targets.c
++++ b/bfd/targets.c
+@@ -846,6 +846,7 @@ extern const bfd_target pj_elf32_vec;
+ extern const bfd_target pj_elf32_le_vec;
+ extern const bfd_target plugin_vec;
+ extern const bfd_target powerpc_boot_vec;
++extern const bfd_target powerpc_elf32_amigaos_vec;
+ extern const bfd_target powerpc_elf32_vec;
+ extern const bfd_target powerpc_elf32_le_vec;
+ extern const bfd_target powerpc_elf32_fbsd_vec;
+@@ -1231,6 +1232,7 @@ static const bfd_target * const _bfd_target_vector[] =
+ 	&pj_elf32_le_vec,
+ 
+ 	&powerpc_boot_vec,
++	&powerpc_elf32_amigaos_vec,
+ 	&powerpc_elf32_vec,
+ 	&powerpc_elf32_le_vec,
+ 	&powerpc_elf32_fbsd_vec,
+diff --git a/binutils/elfcomm.c b/binutils/elfcomm.c
+index 4a4f5368..a996276f 100644
+--- a/binutils/elfcomm.c
++++ b/binutils/elfcomm.c
+@@ -35,6 +35,18 @@
+ 
+ extern char *program_name;
+ 
++/* Restore commit 546cb2d85eddba4f56dfbcb0288db68243e3a0fd for AmigaOS4 with clib clib4 */
++#if defined(__amigaos4__) && defined(__CLIB4__)
++/* FIXME:  This definition really ought to be in ansidecl.h.  */
++#ifndef ATTRIBUTE_WEAK
++#define ATTRIBUTE_WEAK __attribute__((weak))
++#endif
++
++/* Allow the following two functions to be overridden if desired.  */
++void error (const char *, ...) ATTRIBUTE_WEAK;
++void warn (const char *, ...) ATTRIBUTE_WEAK;
++#endif
++
+ void
+ error (const char *message, ...)
+ {
+diff --git a/binutils/objcopy.c b/binutils/objcopy.c
+index 4ab7e899..caa7ce8c 100644
+--- a/binutils/objcopy.c
++++ b/binutils/objcopy.c
+@@ -123,6 +123,9 @@ enum strip_action
+ /* Which symbols to remove.  */
+ static enum strip_action strip_symbols = STRIP_UNDEF;
+ 
++/* Shall we strip unneeded relative relocs? */
++static int strip_unneeded_rel_relocs;
++
+ enum locals_action
+ {
+   LOCALS_UNDEF,
+@@ -369,6 +372,7 @@ enum command_line_switch
+   OPTION_SREC_LEN,
+   OPTION_STACK,
+   OPTION_STRIP_DWO,
++  OPTION_STRIP_UNNEEED_REL_RELOCS,
+   OPTION_STRIP_SECTION_HEADERS,
+   OPTION_STRIP_SYMBOLS,
+   OPTION_STRIP_UNNEEDED,
+@@ -415,6 +419,7 @@ static struct option strip_options[] =
+   {"strip-dwo", no_argument, 0, OPTION_STRIP_DWO},
+   {"strip-symbol", required_argument, 0, 'N'},
+   {"strip-unneeded", no_argument, 0, OPTION_STRIP_UNNEEDED},
++  {"strip-unneeded-rel-relocs", no_argument, 0, OPTION_STRIP_UNNEEED_REL_RELOCS},
+   {"target", required_argument, 0, 'F'},
+   {"verbose", no_argument, 0, 'v'},
+   {"version", no_argument, 0, 'V'},
+@@ -1614,6 +1619,11 @@ filter_symbols (bfd *abfd, bfd *obfd, asymbol **osyms,
+ 
+       undefined = bfd_is_und_section (bfd_asymbol_section (sym));
+ 
++	  if (strip_symbols == STRIP_ALL && undefined)
++        {
++          add_specific_symbol(name, keep_specific_htab);
++        }
++
+       if (add_sym_list)
+ 	{
+ 	  struct addsym_node *ptr;
+@@ -1698,9 +1708,23 @@ filter_symbols (bfd *abfd, bfd *obfd, asymbol **osyms,
+ 	  name = n;
+ 	}
+ 
+-      if (strip_symbols == STRIP_ALL)
+-	keep = false;
+-      else if ((flags & BSF_KEEP) != 0		/* Used in relocation.  */
++      if(strip_symbols == STRIP_ALL) 
++	  { 		
++		  keep = false;
++		 /* Never, ever, strip everthing on the Amiga, keep global symbols, needed by OS 
++		 	_start: 		Entry point of executable, isn't fixed on ppc-amigaos, so OS needs to knwo where to enter
++			__amigaos4__: 	Maker symbol to identify that ELF file is for ppc-amigaos, because no offcial value has been assigned to ELF heder field OS/ABI for ppc-amigaos
++			_SDA_BASE_:		If small data model ist used, the symbol is needed ....?????
++		 */
++     	 if( (bfd_get_flavour(obfd) == bfd_target_elf_flavour && get_elf_backend_data(obfd)->target_os == is_amigaos))
++		 {
++			//  ML: TODO: _SDA_BASE_ onyl needs to be kept if small data section are present ????
++			if (strcmp(name, "_start") == 0 || strcmp(name, "__amigaos4__") == 0 || strcmp(name, "_SDA_BASE_") == 0) {
++			  keep = true;
++			}
++		 }
++	  }
++	  else if ((flags & BSF_KEEP) != 0		/* Used in relocation.  */
+ 	       || ((flags & BSF_SECTION_SYM) != 0
+ 		   && (bfd_asymbol_section (sym)->symbol->flags
+ 		       & BSF_KEEP) != 0))
+@@ -1761,7 +1785,17 @@ filter_symbols (bfd *abfd, bfd *obfd, asymbol **osyms,
+ 	keep = true;
+ 
+       if (keep && is_strip_section (abfd, bfd_asymbol_section (sym)))
+-	keep = false;
++	{
++          /* If the symbol refers to a stripped section, we still want to
++           * keep it, e.g., _SDA_BASE_ TODO: We should perhaps output a
++           * warning or add another option to trigger this behaviour.
++           * FIXME: The section to which symbol refers must be adjusted
++           * as well */
++          if (!is_specified_symbol (name, keep_specific_htab))
++            {
++              keep = false;
++            }
++	}
+ 
+       if (keep)
+ 	{
+@@ -3418,6 +3452,7 @@ copy_object (bfd *ibfd, bfd *obfd, const bfd_arch_info_type *input_arch)
+ 	 haven't been set yet.  mark_symbols_used_in_relocations will
+ 	 ignore input sections which have no corresponding output
+ 	 section.  */
++	 // ML: TODO: Really needef for maiga to remove the floowing  fi???
+       if (strip_symbols != STRIP_ALL)
+ 	{
+ 	  bfd_set_error (bfd_error_no_error);
+@@ -4615,8 +4650,8 @@ copy_relocations_in_section (bfd *ibfd, sec_ptr isection, bfd *obfd)
+ 	    }
+ 	}
+ 
+-      if (strip_symbols == STRIP_ALL)
+-	{
++    if (strip_symbols == STRIP_ALL )
++  {
+ 	  /* Remove relocations which are not in
+ 	     keep_strip_specific_list.  */
+ 	  arelent **w_relpp;
+@@ -4626,10 +4661,23 @@ copy_relocations_in_section (bfd *ibfd, sec_ptr isection, bfd *obfd)
+ 	    /* PR 17512: file: 9e907e0c.  */
+ 	    if (relpp[i]->sym_ptr_ptr
+ 		/* PR 20096 */
+-		&& *relpp[i]->sym_ptr_ptr
+-		&& is_specified_symbol (bfd_asymbol_name (*relpp[i]->sym_ptr_ptr),
++		&& *relpp[i]->sym_ptr_ptr ) {
++		asection *sec = (*(relpp[i]->sym_ptr_ptr))->section;
++
++		if( is_specified_symbol (bfd_asymbol_name (*relpp[i]->sym_ptr_ptr),
+ 					keep_specific_htab))
+ 	      *w_relpp++ = relpp[i];
++		/* Never, ever, strip all? reloc data on the Amiga! */
++		else if( bfd_get_flavour(obfd) == bfd_target_elf_flavour && get_elf_backend_data(obfd)->target_os == is_amigaos)
++		{
++			if (!strip_unneeded_rel_relocs || !relpp [i]->howto->pc_relative || sec->index != osection->index)
++			{
++				relpp[i]->addend = bfd_asymbol_value(*relpp [i]->sym_ptr_ptr) - sec->vma + relpp[i]->addend;
++				relpp[i]->sym_ptr_ptr = &sec->symbol;
++				*w_relpp++ = relpp[i];
++			}
++		}  
++		}
+ 	  relcount = w_relpp - relpp;
+ 	  *w_relpp = 0;
+ 	}
+@@ -4997,6 +5045,9 @@ strip_main (int argc, char *argv[])
+ 	case OPTION_STRIP_UNNEEDED:
+ 	  strip_symbols = STRIP_UNNEEDED;
+ 	  break;
++	case OPTION_STRIP_UNNEEED_REL_RELOCS:
++	  strip_unneeded_rel_relocs = 1;
++	  break;	  
+ 	case 'K':
+ 	  add_specific_symbol (optarg, keep_specific_htab);
+ 	  break;
+@@ -5087,6 +5138,11 @@ strip_main (int argc, char *argv[])
+ 
+   default_deterministic ();
+ 
++  // ML: TODO: For amiga
++  add_specific_symbol("__amigaos4__", keep_specific_htab);
++  add_specific_symbol("_start", keep_specific_htab);
++  add_specific_symbol("_SDA_BASE_", keep_specific_htab);
++
+   /* Default is to strip all symbols.  */
+   if (strip_symbols == STRIP_UNDEF
+       && discard_locals == LOCALS_UNDEF
+@@ -6188,6 +6244,12 @@ copy_main (int argc, char *argv[])
+   if (interleave && copy_byte == -1)
+     fatal (_("interleave start byte must be set with --byte"));
+ 
++  // ML: TOOD: For akigaSO
++  add_specific_symbol("__amigappc__", keep_specific_htab);
++  add_specific_symbol("__amigaos4__", keep_specific_htab);
++  add_specific_symbol("_start", keep_specific_htab);
++  add_specific_symbol("_SDA_BASE_", keep_specific_htab);
++
+   if (copy_byte >= interleave)
+     fatal (_("byte number must be less than interleave"));
+ 
+diff --git a/binutils/readelf.c b/binutils/readelf.c
+index 1f7a90e7..624e5542 100644
+--- a/binutils/readelf.c
++++ b/binutils/readelf.c
+@@ -98,6 +98,7 @@
+ #include "elf/aarch64.h"
+ #include "elf/alpha.h"
+ #include "elf/amdgpu.h"
++#include "elf/amigaos.h"
+ #include "elf/arc.h"
+ #include "elf/arm.h"
+ #include "elf/avr.h"
+@@ -3028,6 +3029,7 @@ get_ppc_dynamic_type (unsigned long type)
+     {
+     case DT_PPC_GOT:    return "PPC_GOT";
+     case DT_PPC_OPT:    return "PPC_OPT";
++    case DT_AMIGAOS_DYNVERSION: return "AMIGAOS_DYNVERSION";
+     default:
+       return NULL;
+     }
+@@ -3377,6 +3379,8 @@ get_dynamic_type (Filedata * filedata, unsigned long type)
+     case DT_GNU_HASH:	return "GNU_HASH";
+     case DT_GNU_FLAGS_1: return "GNU_FLAGS_1";
+ 
++    case DT_AMIGAOS_DYNVERSION: return get_ppc_dynamic_type (type);
++
+     default:
+       if ((type >= DT_LOPROC) && (type <= DT_HIPROC))
+ 	{
+diff --git a/binutils/version.c b/binutils/version.c
+index 378c96ab..80f4d476 100644
+--- a/binutils/version.c
++++ b/binutils/version.c
+@@ -36,5 +36,18 @@ print_version (const char *name)
+ This program is free software; you may redistribute it under the terms of\n\
+ the GNU General Public License version 3 or (at your option) any later version.\n\
+ This program has absolutely no warranty.\n"));
++
++#if defined(__amigaos4__)
++# if defined( __NEWLIB__)
++  printf (_("AmigaOS native (ppc-amigaos,newlib).\n"));
++# elif defined( __CLIB4__)
++  printf (_("AmigaOS native (ppc-amigaos,clib4).\n"));
++# elif defined( __CLIB2__ )
++  printf (_("AmigaOS native (ppc-amigaos,clib2).\n"));
++# else
++ printf (_("AmigaOS native (ppc-amigaos,unknown).\n"));
++# endif
++#endif
++
+   exit (0);
+ }
+diff --git a/config.sub b/config.sub
+index 3d35cde1..113fb395 100755
+--- a/config.sub
++++ b/config.sub
+@@ -305,12 +305,8 @@ case $1 in
+ 				basic_machine=580-amdahl
+ 				basic_os=sysv
+ 				;;
+-			amiga)
+-				basic_machine=m68k-unknown
+-				basic_os=
+-				;;
+-			amigaos | amigados)
+-				basic_machine=m68k-unknown
++			amigaos | amigados | amiga)
++				basic_machine=powerpc-unknown
+ 				basic_os=amigaos
+ 				;;
+ 			amigaunix | amix)
+diff --git a/gas/Makefile.am b/gas/Makefile.am
+index 9f90a1de..793e400c 100644
+--- a/gas/Makefile.am
++++ b/gas/Makefile.am
+@@ -327,6 +327,7 @@ OBJ_FORMAT_HFILES = \
+ TARG_ENV_HFILES = \
+ 	config/te-386bsd.h \
+ 	config/te-aix5.h \
++	config/te-amigaos.h \
+ 	config/te-armeabi.h \
+ 	config/te-armfbsdeabi.h \
+ 	config/te-armfbsdvfp.h \
+diff --git a/gas/Makefile.in b/gas/Makefile.in
+index b2bb505c..d8098418 100644
+--- a/gas/Makefile.in
++++ b/gas/Makefile.in
+@@ -829,6 +829,7 @@ OBJ_FORMAT_HFILES = \
+ TARG_ENV_HFILES = \
+ 	config/te-386bsd.h \
+ 	config/te-aix5.h \
++	config/te-amigaos.h \
+ 	config/te-armeabi.h \
+ 	config/te-armfbsdeabi.h \
+ 	config/te-armfbsdvfp.h \
+diff --git a/gas/config/tc-ppc.c b/gas/config/tc-ppc.c
+index b82ba2ea..2da51e0e 100644
+--- a/gas/config/tc-ppc.c
++++ b/gas/config/tc-ppc.c
+@@ -1521,7 +1521,9 @@ ppc_target_format (void)
+ #endif
+ #endif
+ #ifdef OBJ_ELF
+-# ifdef TE_FreeBSD
++# ifdef TE_AMIGAOS
++  return "elf32-powerpc-amigaos";
++# elif defined (TE_FreeBSD)
+   return (ppc_obj64 ? "elf64-powerpc-freebsd" : "elf32-powerpc-freebsd");
+ # elif defined (TE_VXWORKS)
+   return "elf32-powerpc-vxworks";
+@@ -2087,6 +2089,10 @@ ppc_elf_suffix (char **str_p, expressionS *exp_p)
+ #define MAP64(str, reloc) { str, sizeof (str) - 1, 0, 1, reloc }
+ 
+   static const struct map_bfd mapping[] = {
++    MAP ("brel",		BFD_RELOC_PPC_AMIGAOS_BREL),
++    MAP ("brel@l",		BFD_RELOC_PPC_AMIGAOS_BREL_LO),
++    MAP ("brel@h",		BFD_RELOC_PPC_AMIGAOS_BREL_HI),
++    MAP ("brel@ha",		BFD_RELOC_PPC_AMIGAOS_BREL_HA),
+     MAP ("l",			BFD_RELOC_LO16),
+     MAP ("h",			BFD_RELOC_HI16),
+     MAP ("ha",			BFD_RELOC_HI16_S),
+@@ -3086,6 +3092,9 @@ fixup_size (bfd_reloc_code_real_type reloc, bool *pc_relative)
+     case BFD_RELOC_PPC_TPREL16_HA:
+     case BFD_RELOC_PPC_TPREL16_HI:
+     case BFD_RELOC_PPC_TPREL16_LO:
++    case BFD_RELOC_PPC_AMIGAOS_BREL_LO:
++    case BFD_RELOC_PPC_AMIGAOS_BREL_HI:
++    case BFD_RELOC_PPC_AMIGAOS_BREL_HA:
+       size = 2;
+       break;
+ 
+@@ -3150,6 +3159,7 @@ fixup_size (bfd_reloc_code_real_type reloc, bool *pc_relative)
+     case BFD_RELOC_PPC_VLE_SDAREL_LO16D:
+     case BFD_RELOC_PPC64_TLS_PCREL:
+     case BFD_RELOC_RVA:
++    case BFD_RELOC_PPC_AMIGAOS_BREL:
+       size = 4;
+       break;
+ 
+@@ -7615,6 +7625,12 @@ md_apply_fix (fixS *fixP, valueT *valP, segT seg)
+ 	case BFD_RELOC_PPC64_TPREL16_HIGHEST:
+ 	case BFD_RELOC_PPC64_TPREL16_HIGHESTA:
+ 	case BFD_RELOC_PPC64_TLS_PCREL:
++	  /* AmigaOS r2 base relative relocs are resolved by the linker
++	     (relative to the output .data section).  */
++	case BFD_RELOC_PPC_AMIGAOS_BREL:
++	case BFD_RELOC_PPC_AMIGAOS_BREL_HI:
++	case BFD_RELOC_PPC_AMIGAOS_BREL_LO:
++	case BFD_RELOC_PPC_AMIGAOS_BREL_HA:
+ 	  fixP->fx_done = 0;
+ 	  break;
+ #endif
+diff --git a/gas/config/te-amigaos.h b/gas/config/te-amigaos.h
+new file mode 100644
+index 00000000..8bd15a3d
+--- /dev/null
++++ b/gas/config/te-amigaos.h
+@@ -0,0 +1,14 @@
++/*
++ * te-amigaos.h -- Amiga target environment declarations.
++ */
++
++#define TE_AMIGAOS 1
++
++#define LOCAL_LABELS_DOLLAR 1
++#define LOCAL_LABELS_FB 1
++
++#ifdef OBJ_HEADER
++#include OBJ_HEADER
++#else
++#include "obj-format.h"
++#endif
+diff --git a/gas/configure.tgt b/gas/configure.tgt
+index 7a5645fd..8a7927a1 100644
+--- a/gas/configure.tgt
++++ b/gas/configure.tgt
+@@ -364,6 +364,7 @@ case ${generic_target} in
+   ppc-*-beos*)				fmt=coff ;;
+   ppc-*-*n*bsd* | ppc-*-elf*)		fmt=elf ;;
+   ppc-*-eabi* | ppc-*-sysv4*)		fmt=elf ;;
++  ppc-*-amigaos*)			fmt=elf em=amigaos ;;
+   ppc-*-haiku*)				fmt=elf em=haiku ;;
+   ppc-*-linux-*)			fmt=elf em=linux ;;
+   ppc-*-macos*)				fmt=coff em=macos ;;
+diff --git a/gas/po/POTFILES.in b/gas/po/POTFILES.in
+index c0ce2661..f35ff320 100644
+--- a/gas/po/POTFILES.in
++++ b/gas/po/POTFILES.in
+@@ -186,6 +186,7 @@ config/tc-z8k.c
+ config/tc-z8k.h
+ config/te-386bsd.h
+ config/te-aix5.h
++config/te-amigaos.h
+ config/te-armeabi.h
+ config/te-armfbsdeabi.h
+ config/te-armfbsdvfp.h
+diff --git a/include/elf/amigaos.h b/include/elf/amigaos.h
+new file mode 100644
+index 00000000..2cbcd490
+--- /dev/null
++++ b/include/elf/amigaos.h
+@@ -0,0 +1,27 @@
++/* AmigaOS ELF support for BFD.
++   Copyright 2001 Free Software Foundation, Inc.
++
++This file is part of BFD, the Binary File Descriptor library.
++
++This program is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 2 of the License, or
++(at your option) any later version.
++
++This program is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with this program; if not, write to the Free Software Foundation, Inc.,
++51 Franklin Street - Fifth Floor, Boston, MA 02110-1301, USA.  */
++
++#ifndef _ELF_AMIGAOS_H
++#define _ELF_AMIGAOS_H
++
++#include "elf/common.h"
++
++#define DT_AMIGAOS_DYNVERSION	(DT_LOOS + 1)
++
++#endif /* _ELF_AMIGAOS_H */
+diff --git a/include/elf/ppc.h b/include/elf/ppc.h
+index 6da14425..90ab56da 100644
+--- a/include/elf/ppc.h
++++ b/include/elf/ppc.h
+@@ -138,6 +138,12 @@ START_RELOC_NUMBERS (elf_ppc_reloc_type)
+   RELOC_NUMBER (R_PPC_PLTSEQ,		119)
+   RELOC_NUMBER (R_PPC_PLTCALL,		120)
+ 
++/* AmigaOS4 relocs */
++  RELOC_NUMBER (R_PPC_AMIGAOS_BREL,	210)
++  RELOC_NUMBER (R_PPC_AMIGAOS_BREL_LO,	211)
++  RELOC_NUMBER (R_PPC_AMIGAOS_BREL_HI,  212)
++  RELOC_NUMBER (R_PPC_AMIGAOS_BREL_HA,  213)
++  
+ /* PowerPC VLE relocations.  */
+   RELOC_NUMBER (R_PPC_VLE_REL8,		216)
+   RELOC_NUMBER (R_PPC_VLE_REL15,	217)
+diff --git a/include/filenames.h b/include/filenames.h
+index 74dc8841..c161cbba 100644
+--- a/include/filenames.h
++++ b/include/filenames.h
+@@ -43,6 +43,16 @@ extern "C" {
+ #  define HAS_DRIVE_SPEC(f) HAS_DOS_DRIVE_SPEC (f)
+ #  define IS_DIR_SEPARATOR(c) IS_DOS_DIR_SEPARATOR (c)
+ #  define IS_ABSOLUTE_PATH(f) IS_DOS_ABSOLUTE_PATH (f)
++#elif defined(__amigaos4__)
++#  ifndef HAVE_AMIGA_BASED_FILE_SYSTEM
++#    define HAVE_AMIGA_BASED_FILE_SYSTEM 1
++#  endif
++#  ifndef HAVE_CASE_INSENSITIVE_FILE_SYSTEM
++#    define HAVE_CASE_INSENSITIVE_FILE_SYSTEM 1
++#  endif
++#  define HAS_DRIVE_SPEC(f) HAS_AMIGOS_DRIVE_SPEC (f)
++#  define IS_DIR_SEPARATOR(c) IS_AMIGOS_DIR_SEPARATOR (c)
++#  define IS_ABSOLUTE_PATH(f) IS_AMIGOS_ABSOLUTE_PATH (f)
+ #else /* not DOSish */
+ #  if defined(__APPLE__)
+ #    ifndef HAVE_CASE_INSENSITIVE_FILE_SYSTEM
+@@ -63,12 +73,20 @@ extern "C" {
+ 
+ /* Remove the drive spec from F, assuming HAS_DRIVE_SPEC (f).
+    The result is a pointer to the remainder of F.  */
++#if defined(__amigaos4__)
++#define STRIP_DRIVE_SPEC(f)	(strchr ((f), ':') + 1)
++#else
+ #define STRIP_DRIVE_SPEC(f)	((f) + 2)
++#endif
+ 
+ #define IS_DOS_DIR_SEPARATOR(c) IS_DIR_SEPARATOR_1 (1, c)
+ #define IS_DOS_ABSOLUTE_PATH(f) IS_ABSOLUTE_PATH_1 (1, f)
+ #define HAS_DOS_DRIVE_SPEC(f) HAS_DRIVE_SPEC_1 (1, f)
+ 
++#define IS_AMIGOS_DIR_SEPARATOR(c) ( ((c) == '/') || ((c) == ':') )
++#define IS_AMIGOS_ABSOLUTE_PATH(f) HAS_AMIGOS_DRIVE_SPEC(f)
++#define HAS_AMIGOS_DRIVE_SPEC(f) (strchr ((f), ':') != NULL)
++
+ #define IS_UNIX_DIR_SEPARATOR(c) IS_DIR_SEPARATOR_1 (0, c)
+ #define IS_UNIX_ABSOLUTE_PATH(f) IS_ABSOLUTE_PATH_1 (0, f)
+ 
+diff --git a/include/libiberty.h b/include/libiberty.h
+index bdb491b9..881b3f84 100644
+--- a/include/libiberty.h
++++ b/include/libiberty.h
+@@ -132,6 +132,11 @@ extern const char *lbasename (const char *) ATTRIBUTE_RETURNS_NONNULL ATTRIBUTE_
+ 
+ extern const char *dos_lbasename (const char *) ATTRIBUTE_RETURNS_NONNULL ATTRIBUTE_NONNULL(1);
+ 
++/* Same, but assumes AMIGA semantics (drive name, slash is also a
++   dir separator) regardless of host.  */
++
++extern const char *amiga_lbasename (const char *) ATTRIBUTE_RETURNS_NONNULL ATTRIBUTE_NONNULL(1);
++
+ /* Same, but assumes Unix semantics (absolute paths always start with
+    a slash, only forward slash is accepted as dir separator)
+    regardless of host.  */
+diff --git a/ld/Makefile.am b/ld/Makefile.am
+index 3ae3d7f1..07398155 100644
+--- a/ld/Makefile.am
++++ b/ld/Makefile.am
+@@ -159,6 +159,7 @@ ALL_EMULATION_SOURCES = \
+ 	eaixrs6.c \
+ 	ealpha.c \
+ 	ealphavms.c \
++	eamigaos.c \
+ 	earcelf.c \
+ 	earclinux.c \
+ 	earclinux_nps.c \
+diff --git a/ld/Makefile.in b/ld/Makefile.in
+index d879f04a..cf38c7ea 100644
+--- a/ld/Makefile.in
++++ b/ld/Makefile.in
+@@ -674,6 +674,7 @@ ALL_EMULATION_SOURCES = \
+ 	eaixrs6.c \
+ 	ealpha.c \
+ 	ealphavms.c \
++	eamigaos.c \
+ 	earcelf.c \
+ 	earclinux.c \
+ 	earclinux_nps.c \
+@@ -1283,6 +1284,7 @@ distclean-compile:
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eaixrs6.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ealpha.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ealphavms.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eamigaos.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earcelf.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earclinux.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earclinux_nps.Po@am__quote@
+diff --git a/ld/configure.tgt b/ld/configure.tgt
+index 60b62e69..5c0046d0 100644
+--- a/ld/configure.tgt
++++ b/ld/configure.tgt
+@@ -652,6 +652,10 @@ pjl*-*-*)		targ_emul=pjlelf
+ pj*-*-*)		targ_emul=pjelf
+ 			targ_extra_ofiles=ldelfgen.o
+ 			;;
++powerpc-*-amigaos*)
++			targ_emul=amigaos
++			targ_extra_emuls=elf32ppc
++			;;
+ powerpc-*-freebsd* | powerpc-*-kfreebsd*-gnu)
+ 			targ_emul=elf32ppc_fbsd
+ 			targ_extra_emuls=elf32ppcsim
+@@ -1073,6 +1077,10 @@ i[03-9x]86-*-cygwin* | x86_64-*-cygwin*)
+ *-*-netbsd*)
+   ;;
+ 
++powerpc-*-amigaos*)
++  NATIVE_LIB_DIRS='/gcc/local/lib /gcc/lib'
++  ;;
++
+ alpha*-*-*)
+   NATIVE_LIB_DIRS='/usr/local/lib /usr/ccs/lib /lib /usr/lib'
+   ;;
+diff --git a/ld/emulparams/amigaos.sh b/ld/emulparams/amigaos.sh
+new file mode 100644
+index 00000000..fb60fa8d
+--- /dev/null
++++ b/ld/emulparams/amigaos.sh
+@@ -0,0 +1,31 @@
++source_sh ${srcdir}/emulparams/elf32ppccommon.sh
++source_sh ${srcdir}/emulparams/plt_unwind.sh
++
++TEMPLATE_NAME=elf
++EXTRA_EM_FILE=ppc32elf
++SCRIPT_NAME=amigaos
++OUTPUT_FORMAT="elf32-powerpc-amigaos"
++MAXPAGESIZE="CONSTANT (MAXPAGESIZE)"
++COMMONPAGESIZE="CONSTANT (COMMONPAGESIZE)"
++DATA_SEGMENT_ALIGN="ALIGN(${SEGMENT_SIZE})"
++ALIGNMENT=16
++ARCH=powerpc
++MACHINE=
++GENERATE_SHLIB_SCRIPT=yes
++TEXT_START_ADDR=0x01000000
++SHLIB_TEXT_START_ADDR=0x10000000
++unset WRITABLE_RODATA
++DATA_START_SYMBOLS="_DATA_BASE_ = .;"
++SDATA_START_SYMBOLS="_SDA_BASE_ = . + 0x8000;"
++DATA_GOT=
++SDATA_GOT=
++TEXT_PLT=yes
++SEPARATE_GOTPLT=0
++unset BSS_PLT
++unset DATA_PLT
++GOT=".got          ${RELOCATING-0} : SPECIAL { *(.got) }"
++PLT=".plt          ${RELOCATING-0} :  { *(.plt) }"
++# GOTPLT="${PLT}"
++OTHER_TEXT_SECTIONS="*(.glink)"
++ENABLE_INITFINI_ARRAY=no
++DYNAMIC_LINK=false
+diff --git a/ld/ldctor.c b/ld/ldctor.c
+index 9782bbac..29e4082d 100644
+--- a/ld/ldctor.c
++++ b/ld/ldctor.c
+@@ -33,6 +33,7 @@
+ #include <ldgram.h>
+ #include "ldmain.h"
+ #include "ldctor.h"
++#include "elf-bfd.h"
+ 
+ /* The list of statements needed to handle constructors.  These are
+    invoked by the command CONSTRUCTORS in the linker script.  */
+@@ -257,8 +258,13 @@ ldctor_build_sets (void)
+       /* If the symbol is defined, we may have been invoked from
+ 	 collect, and the sets may already have been built, so we do
+ 	 not do anything.  */
+-      if (p->h->type == bfd_link_hash_defined
+-	  || p->h->type == bfd_link_hash_defweak)
++	 /* dgv -- libnix v1.1 uses absolute sets that are also explicitly
++	 defined in the library so that the sets need to be build even
++	 if the symbol is defined */
++	  if (!(bfd_get_flavour (link_info.output_bfd) == bfd_target_elf_flavour &&
++		get_elf_backend_data (link_info.output_bfd)->target_os == is_amigaos) &&
++        (p->h->type == bfd_link_hash_defined
++	    || p->h->type == bfd_link_hash_defweak))
+ 	continue;
+ 
+       /* For each set we build:
+@@ -357,15 +363,22 @@ ldctor_build_sets (void)
+ 
+ 	      if (e->name != NULL)
+ 		minfo ("%pT\n", e->name);
+-	      else
+-		minfo ("%G\n", e->section->owner, e->section, e->value);
++		  else if (e->section->owner)
++	    minfo ("%G\n", e->section->owner, e->section, e->value);
++		  else
++		minfo ("%s\n", "** ABS **");
+ 	    }
+ 
+ 	  /* Need SEC_KEEP for --gc-sections.  */
+ 	  if (!bfd_is_abs_section (e->section))
+ 	    e->section->flags |= SEC_KEEP;
+ 
+-	  if (bfd_link_relocatable (&link_info))
++	  /* dgv -- on the amiga, we want the constructors to be relocateable
++	     objects. However, this should be arranged somewhere else (FIXME) */
++	  if (bfd_link_relocatable (&link_info) ||
++		  (bfd_get_flavour (link_info.output_bfd) == bfd_target_elf_flavour &&
++           get_elf_backend_data (link_info.output_bfd)->target_os == is_amigaos &&
++	       e->section != bfd_abs_section_ptr))
+ 	    lang_add_reloc (p->reloc, howto, e->section, e->name,
+ 			    exp_intop (e->value));
+ 	  else
+diff --git a/ld/ldlang.c b/ld/ldlang.c
+index b04ba113..86dd9fad 100644
+--- a/ld/ldlang.c
++++ b/ld/ldlang.c
+@@ -4240,6 +4240,13 @@ typedef struct bfd_sym_chain ldlang_undef_chain_list_type;
+ void
+ ldlang_add_undef (const char *const name, bool cmdline ATTRIBUTE_UNUSED)
+ {
++#if 1
++  /* This is a quick ugly hak of getting around the problem
++   * with -use-dynld being passed to the linker
++   */
++  if (strcmp(name, "se-dynld") == 0)
++    return;
++#endif	
+   ldlang_undef_chain_list_type *new_undef;
+ 
+   new_undef = stat_alloc (sizeof (*new_undef));
+diff --git a/ld/ldmain.c b/ld/ldmain.c
+index 77b167fd..91cb6636 100644
+--- a/ld/ldmain.c
++++ b/ld/ldmain.c
+@@ -973,10 +973,15 @@ main (int argc, char **argv)
+ 
+   /* Print error messages for any missing symbols, for any warning
+      symbols, and possibly multiple definitions.  */
++#ifdef __amigaos4__
++  /* Make all files executable, even relocatable files */
++  link_info.output_bfd->flags |= EXEC_P;
++#else
+   if (bfd_link_relocatable (&link_info))
+     link_info.output_bfd->flags &= ~EXEC_P;
+   else
+     link_info.output_bfd->flags |= EXEC_P;
++#endif
+ 
+   flagword flags = 0;
+   switch (config.compress_debug)
+diff --git a/ld/po/BLD-POTFILES.in b/ld/po/BLD-POTFILES.in
+index d7d0c517..32014829 100644
+--- a/ld/po/BLD-POTFILES.in
++++ b/ld/po/BLD-POTFILES.in
+@@ -17,6 +17,7 @@ eaixppc.c
+ eaixrs6.c
+ ealpha.c
+ ealphavms.c
++eamigaos.c
+ earcelf.c
+ earclinux.c
+ earclinux_nps.c
+diff --git a/ld/scripttempl/amigaos.sc b/ld/scripttempl/amigaos.sc
+new file mode 100644
+index 00000000..201f24fa
+--- /dev/null
++++ b/ld/scripttempl/amigaos.sc
+@@ -0,0 +1,1114 @@
++# Copyright (C) 2014-2026 Free Software Foundation, Inc.
++#
++# Copying and distribution of this file, with or without modification,
++# are permitted in any medium without royalty provided the copyright
++# notice and this notice are preserved.
++#
++# Unusual variables checked by this code:
++#	NOP - four byte opcode for no-op (defaults to none)
++#	NO_SMALL_DATA - no .sbss/.sbss2/.sdata/.sdata2 sections if not
++#		empty.
++#	HAVE_NOINIT - Include a .noinit output section in the script.
++#	HAVE_PERSISTENT - Include a .persistent output section in the script.
++#	HAVE_DT_RELR - Include a .relr.dyn output section in the script.
++#	SMALL_DATA_CTOR - .ctors contains small data.
++#	SMALL_DATA_DTOR - .dtors contains small data.
++#	DATA_ADDR - if end-of-text-plus-one-page isn't right for data start
++#	INITIAL_READONLY_SECTIONS - at start of text segment
++#	OTHER_READONLY_SECTIONS - other than .text .init .rodata ...
++#		(e.g., .PARISC.milli)
++#	OTHER_TEXT_SECTIONS - these get put in .text when relocating
++#	INITIAL_READWRITE_SECTIONS - at start of data segment (after relro)
++#	OTHER_READWRITE_SECTIONS - other than .data .bss .ctors .sdata ...
++#		(e.g., .PARISC.global)
++#	OTHER_RELRO_SECTIONS - other than .data.rel.ro ...
++#		(e.g. PPC32 .fixup, .got[12])
++#	OTHER_RELRO_SECTIONS_2 - as above, but after .dynamic in text segment
++#	OTHER_BSS_SECTIONS - other than .bss .sbss ...
++#	ATTRS_SECTIONS - at the end
++#	OTHER_SECTIONS - at the end
++#	EXECUTABLE_SYMBOLS - symbols that must be defined for an
++#		executable (e.g., _DYNAMIC_LINK)
++#       TEXT_START_ADDR - the first byte of the text segment, after any
++#               headers.
++#       TEXT_BASE_ADDRESS - the first byte of the text segment.
++#	TEXT_START_SYMBOLS - symbols that appear at the start of the
++#		.text section.
++#	DATA_START_SYMBOLS - symbols that appear at the start of the
++#		.data section.
++#	DATA_END_SYMBOLS - symbols that appear at the end of the
++#		writeable data sections.
++#	OTHER_GOT_SYMBOLS - symbols defined just before .got.
++#	OTHER_GOT_SECTIONS - sections just after .got.
++#	OTHER_PLT_SECTIONS - sections just after .plt.
++#	OTHER_SDATA_SECTIONS - sections just after .sdata.
++#	OTHER_BSS_SYMBOLS - symbols that appear at the start of the
++#		.bss section besides __bss_start.
++#	PLT_NEXT_DATA - .plt next to data segment when .plt is in text segment.
++#	DATA_PLT - .plt should be in data segment, not text segment.
++#	PLT_BEFORE_GOT - .plt just before .got when .plt is in data segement.
++#	BSS_PLT - .plt should be in bss segment
++#	NO_REL_RELOCS - Don't include .rel.* sections in script
++#	NO_RELA_RELOCS - Don't include .rela.* sections in script
++#	NON_ALLOC_DYN - Place dynamic sections after data segment.
++#	TEXT_DYNAMIC - .dynamic in text segment, not data segment.
++#	EMBEDDED - whether this is for an embedded system.
++#	SHLIB_TEXT_START_ADDR - if set, add to SIZEOF_HEADERS to set
++#		start address of shared library.
++#	INPUT_FILES - INPUT command of files to always include
++#	WRITABLE_RODATA - if set, the .rodata section should be writable
++#	INIT_START, INIT_END -  statements just before and just after
++#	combination of .init sections.
++#	FINI_START, FINI_END - statements just before and just after
++#	combination of .fini sections.
++#	STACK_ADDR - start of a .stack section.
++#	OTHER_SYMBOLS - symbols to place right at the end of the script.
++#	ETEXT_NAME - name of a symbol for the end of the text section,
++#		normally etext.
++#	ETEXT_LAST_IN_RODATA_SEGMENT - emit ETEXT_NAME after all sections in
++#		the read-only data segment (which may or may not be equal to
++#		the code segment), instead of after just the code parts.
++#	SEPARATE_CODE - if set, .text and similar sections containing
++#		actual machine instructions must be in wholly disjoint
++#		pages from any other data, including headers
++#	SEPARATE_GOTPLT - if set, .got.plt should be separate output section,
++#		so that .got can be in the RELRO area.  It should be set to
++#		the number of bytes in the beginning of .got.plt which can be
++#		in the RELRO area as well.
++#	USER_LABEL_PREFIX - prefix to add to user-visible symbols.
++#	RODATA_NAME, SDATA_NAME, SBSS_NAME, BSS_NAME - base parts of names
++#		for standard sections, without initial "." or suffixes.
++#       SYMBOL_ABI_ALIGNMENT - minimum alignment in bytes which needs to be
++#               applied to every symbol definition
++#       ALL_TEXT_BEFORE_RO - put all code sections before read-only
++#               sections
++#       ALL_TEXT_AFTER_RO - put all code sections after read-only
++#               sections
++#
++# When adding sections, do note that the names of some sections are used
++# when specifying the start address of the next.
++#
++
++#  Many sections come in three flavours.  There is the 'real' section,
++#  like ".data".  Then there are the per-procedure or per-variable
++#  sections, generated by -ffunction-sections and -fdata-sections in GCC,
++#  and useful for --gc-sections, which for a variable "foo" might be
++#  ".data.foo".  Then there are the linkonce sections, for which the linker
++#  eliminates duplicates, which are named like ".gnu.linkonce.d.foo".
++#  The exact correspondences are:
++#
++#  Section	Linkonce section
++#  .text	.gnu.linkonce.t.foo
++#  .rodata	.gnu.linkonce.r.foo
++#  .data	.gnu.linkonce.d.foo
++#  .bss		.gnu.linkonce.b.foo
++#  .sdata	.gnu.linkonce.s.foo
++#  .sbss	.gnu.linkonce.sb.foo
++#  .sdata2	.gnu.linkonce.s2.foo
++#  .sbss2	.gnu.linkonce.sb2.foo
++#  .debug_info	.gnu.linkonce.wi.foo
++#  .tdata	.gnu.linkonce.td.foo
++#  .tbss	.gnu.linkonce.tb.foo
++#  .lrodata	.gnu.linkonce.lr.foo
++#  .ldata	.gnu.linkonce.l.foo
++#  .lbss	.gnu.linkonce.lb.foo
++#  .noinit	.gnu.linkonce.n.foo
++#  .persistent	.gnu.linkonce.p.foo
++#
++#  Each of these can also have corresponding .rel.* and .rela.* sections.
++
++# ------------------------------------------------------------------------
++# The multiple forms of conditional shell script syntax that are used in
++# this file can be confusing, so here is a quick explanation of how they
++# work:
++#
++# The following all mean "if foo is defined then do/insert <stuff>":
++#
++#    test -z "$foo" || <stuff> 
++#    test -n "$foo" && <stuff>
++#    if test -n "$foo"; then <stuff>
++#    if [ -n "$foo" ]; then <stuff>
++#    ${foo-<stuff>}
++#
++# Whereas the following all mean "if foo is undefined then do/insert <stuff>":
++#
++#    test -n "$foo" || <stuff>
++#    test -z "$foo" && <stuff>
++#    if test -z "$foo"; then <stuff>
++#    if [ -z "$foo" ]; then <stuff>
++#    ${foo+<stuff>}
++#
++# If multiple symbols are tested together then they operate as an IOR for
++# positive tests and a NOR for negative tests.  ie, the following all do
++# <stuff> if either or both of <foo> and <bar> are defined:
++#
++#    test -z "$foo$bar" || <stuff> 
++#    test -n "$foo$bar" && <stuff>
++#    if test -n "$foo$bar"; then <stuff>
++#
++# Whilst the following only do <stuff> if neither <foo> nor <bar> are defined:
++#
++#    test -n "$foo$bar" || <stuff>
++#    if -z "$foo$bar"; then <stuff>
++#    test -z "$foo$bar" && <stuff>
++#
++# Also:
++#   foo=${foo-${bar-${baz}}}
++# means:
++#   If foo is defined, leave it unchanged.  Otherwise if bar is defined
++#   then set foo equal to bar, otherwise set foo equal to baz.
++# ------------------------------------------------------------------------
++
++if test -n "$NOP"; then
++  FILL="=$NOP"
++else
++  FILL=
++fi
++
++test -n "$CREATE_SHLIB$CREATE_PIE" && CREATE_PIC=" "
++test -z "$RODATA_NAME" && RODATA_NAME=rodata
++test -z "$SDATA_NAME" && SDATA_NAME=sdata
++test -z "$SBSS_NAME" && SBSS_NAME=sbss
++test -z "$BSS_NAME" && BSS_NAME=bss
++test -z "$ENTRY" && ENTRY=${USER_LABEL_PREFIX}_start
++test -z "${BIG_OUTPUT_FORMAT}" && BIG_OUTPUT_FORMAT=${OUTPUT_FORMAT}
++test -z "${LITTLE_OUTPUT_FORMAT}" && LITTLE_OUTPUT_FORMAT=${OUTPUT_FORMAT}
++if [ -z "$MACHINE" ]; then OUTPUT_ARCH=${ARCH}; else OUTPUT_ARCH=${ARCH}:${MACHINE}; fi
++test -z "${ELFSIZE}" && ELFSIZE=32
++test -z "${ALIGNMENT}" && ALIGNMENT="${ELFSIZE} / 8"
++test "$LD_FLAG" = "N" && DATA_ADDR=.
++test -z "${ETEXT_NAME}" && ETEXT_NAME=${USER_LABEL_PREFIX}etext
++test -n "$RELRO_NOW" && unset SEPARATE_GOTPLT
++test -z "$ATTRS_SECTIONS" && ATTRS_SECTIONS=".gnu.attributes 0 : { KEEP (*(.gnu.attributes)) }"
++
++if test -z "$DATA_SEGMENT_ALIGN"; then
++  test -n "$CREATE_SHLIB$CREATE_PIE" && test -n "$SHLIB_DATA_ADDR" && COMMONPAGESIZE=""
++  test -z "$CREATE_SHLIB$CREATE_PIE" && test -n "$DATA_ADDR" && COMMONPAGESIZE=""
++  DATA_SEGMENT_ALIGN="ALIGN(${SEGMENT_SIZE}) + (. & (${MAXPAGESIZE} - 1))"
++  DATA_SEGMENT_RELRO_END=""
++  DATA_SEGMENT_END=""
++  if test -n "${COMMONPAGESIZE}"; then
++    if test "${SEGMENT_SIZE}" != "${MAXPAGESIZE}"; then
++      DATA_SEGMENT_ALIGN="ALIGN (${SEGMENT_SIZE}) - ((${MAXPAGESIZE} - .) & (${MAXPAGESIZE} - 1)); \
++      . = DATA_SEGMENT_ALIGN (${MAXPAGESIZE}, ${COMMONPAGESIZE})"
++    else
++      DATA_SEGMENT_ALIGN="DATA_SEGMENT_ALIGN (${MAXPAGESIZE}, ${COMMONPAGESIZE})"
++    fi
++    DATA_SEGMENT_END=". = DATA_SEGMENT_END (.);"
++    DATA_SEGMENT_RELRO_END=". = DATA_SEGMENT_RELRO_END (${SEPARATE_GOTPLT-0}, .);"
++  fi
++fi
++
++if test -z "${INITIAL_READONLY_SECTIONS}${CREATE_SHLIB}"; then
++  INITIAL_READONLY_SECTIONS=".interp       ${RELOCATING-0} : { *(.interp) }"
++fi
++
++if test -z "$PLT"; then
++  IPLT=".iplt         ${RELOCATING-0} : { *(.iplt) }"
++  PLT=".plt          ${RELOCATING-0} : { *(.plt)${RELOCATING+${IREL_IN_PLT+ *(.iplt)}} }
++  ${IREL_IN_PLT-$IPLT}"
++fi
++
++test -n "${DATA_PLT-${BSS_PLT-text}}" && TEXT_PLT=
++
++if test -z "$GOT"; then
++  if test -z "$SEPARATE_GOTPLT"; then
++    GOT=".got          ${RELOCATING-0} : {${RELOCATING+ *(.got.plt) *(.igot.plt)} *(.got)${RELOCATING+ *(.igot)} }"
++  else
++    GOT=".got          ${RELOCATING-0} : { *(.got)${RELOCATING+ *(.igot)} }"
++    GOTPLT=".got.plt      ${RELOCATING-0} : { *(.got.plt)${RELOCATING+ *(.igot.plt)} }"
++  fi
++fi
++
++def_symbol()
++{
++    if [ -z "${SYMBOL_ABI_ALIGNMENT}" ]; then
++	echo "${USER_LABEL_PREFIX}$1 = ."
++    else
++	echo "${USER_LABEL_PREFIX}$1 = ALIGN(${SYMBOL_ABI_ALIGNMENT})"
++    fi
++}
++
++REL_IFUNC=".rel.ifunc    ${RELOCATING-0} : { *(.rel.ifunc) }"
++RELA_IFUNC=".rela.ifunc   ${RELOCATING-0} : { *(.rela.ifunc) }"
++REL_IPLT=".rel.iplt     ${RELOCATING-0} :
++    {
++      ${RELOCATING+${CREATE_PIC-PROVIDE_HIDDEN ($(def_symbol "__rel_iplt_start"));}}
++      *(.rel.iplt)
++      ${RELOCATING+${CREATE_PIC-PROVIDE_HIDDEN ($(def_symbol "__rel_iplt_end"));}}
++    }"
++RELA_IPLT=".rela.iplt    ${RELOCATING-0} :
++    {
++      ${RELOCATING+${CREATE_PIC-PROVIDE_HIDDEN ($(def_symbol "__rela_iplt_start"));}}
++      *(.rela.iplt)
++      ${RELOCATING+${CREATE_PIC-PROVIDE_HIDDEN ($(def_symbol "__rela_iplt_end"));}}
++    }"
++DYNAMIC=".dynamic      ${RELOCATING-0} : { *(.dynamic) }"
++RODATA=".${RODATA_NAME}       ${RELOCATING-0} : { *(.${RODATA_NAME}${RELOCATING+ .${RODATA_NAME}.* .gnu.linkonce.r.*}) }"
++DATARELRO=".data.rel.ro : { *(.data.rel.ro.local* .gnu.linkonce.d.rel.ro.local.*) *(.data.rel.ro .data.rel.ro.* .gnu.linkonce.d.rel.ro.*) }"
++DISCARDED="/DISCARD/ : { *(.note.GNU-stack) *(.gnu_debuglink) *(.gnu.lto_*) *(.gnu_object_only) }"
++if test -z "${NO_SMALL_DATA}"; then
++  SBSS=".${SBSS_NAME}         ${RELOCATING-0} :
++  {
++    ${RELOCATING+${SBSS_START_SYMBOLS}}
++    ${CREATE_SHLIB+*(.${SBSS_NAME}2 .${SBSS_NAME}2.* .gnu.linkonce.sb2.*)}
++    ${RELOCATING+*(.dyn${SBSS_NAME})}
++    *(.${SBSS_NAME}${RELOCATING+ .${SBSS_NAME}.* .gnu.linkonce.sb.*})
++    ${RELOCATING+*(.scommon)}
++    ${RELOCATING+${SBSS_END_SYMBOLS}}
++  }"
++  SBSS2=".${SBSS_NAME}2        ${RELOCATING-0} : { *(.${SBSS_NAME}2${RELOCATING+ .${SBSS_NAME}2.* .gnu.linkonce.sb2.*}) }"
++  SDATA="/* We want the small data sections together, so single-instruction offsets
++     can access them all, and initialized data all before uninitialized, so
++     we can shorten the on-disk segment size.  */
++  .${SDATA_NAME}        ${RELOCATING-0} :
++  {
++    ${RELOCATING+${SDATA_START_SYMBOLS}}
++    ${CREATE_SHLIB+*(.${SDATA_NAME}2 .${SDATA_NAME}2.* .gnu.linkonce.s2.*)}
++    *(.${SDATA_NAME}${RELOCATING+ .${SDATA_NAME}.* .gnu.linkonce.s.*})
++  }"
++  SDATA2=".${SDATA_NAME}2       ${RELOCATING-0} :
++  {
++    ${RELOCATING+${SDATA2_START_SYMBOLS}}
++    *(.${SDATA_NAME}2${RELOCATING+ .${SDATA_NAME}2.* .gnu.linkonce.s2.*})
++  }"
++  REL_SDATA=".rel.${SDATA_NAME}    ${RELOCATING-0} : { *(.rel.${SDATA_NAME}${RELOCATING+ .rel.${SDATA_NAME}.* .rel.gnu.linkonce.s.*}) }
++  .rela.${SDATA_NAME}   ${RELOCATING-0} : { *(.rela.${SDATA_NAME}${RELOCATING+ .rela.${SDATA_NAME}.* .rela.gnu.linkonce.s.*}) }"
++  REL_SBSS=".rel.${SBSS_NAME}     ${RELOCATING-0} : { *(.rel.${SBSS_NAME}${RELOCATING+ .rel.${SBSS_NAME}.* .rel.gnu.linkonce.sb.*}) }
++  .rela.${SBSS_NAME}    ${RELOCATING-0} : { *(.rela.${SBSS_NAME}${RELOCATING+ .rela.${SBSS_NAME}.* .rela.gnu.linkonce.sb.*}) }"
++  REL_SDATA2=".rel.${SDATA_NAME}2   ${RELOCATING-0} : { *(.rel.${SDATA_NAME}2${RELOCATING+ .rel.${SDATA_NAME}2.* .rel.gnu.linkonce.s2.*}) }
++  .rela.${SDATA_NAME}2  ${RELOCATING-0} : { *(.rela.${SDATA_NAME}2${RELOCATING+ .rela.${SDATA_NAME}2.* .rela.gnu.linkonce.s2.*}) }"
++  REL_SBSS2=".rel.${SBSS_NAME}2    ${RELOCATING-0} : { *(.rel.${SBSS_NAME}2${RELOCATING+ .rel.${SBSS_NAME}2.* .rel.gnu.linkonce.sb2.*}) }
++  .rela.${SBSS_NAME}2   ${RELOCATING-0} : { *(.rela.${SBSS_NAME}2${RELOCATING+ .rela.${SBSS_NAME}2.* .rela.gnu.linkonce.sb2.*}) }"
++else
++  NO_SMALL_DATA=" "
++fi
++
++if test -z "${SDATA_GOT}${DATA_GOT}"; then
++  if test -n "${NO_SMALL_DATA}"; then
++    DATA_GOT=" "
++  fi
++fi
++
++if test -z "${SDATA_GOT}${DATA_GOT}"; then
++  if test -z "${NO_SMALL_DATA}"; then
++    SDATA_GOT=" "
++  fi
++fi
++
++test -n "$SEPARATE_GOTPLT" && SEPARATE_GOTPLT=" "
++
++test "${LARGE_SECTIONS}" = "yes" && REL_LARGE="
++  .rel.ldata    ${RELOCATING-0} : { *(.rel.ldata${RELOCATING+ .rel.ldata.* .rel.gnu.linkonce.l.*}) }
++  .rela.ldata   ${RELOCATING-0} : { *(.rela.ldata${RELOCATING+ .rela.ldata.* .rela.gnu.linkonce.l.*}) }
++  .rel.lbss     ${RELOCATING-0} : { *(.rel.lbss${RELOCATING+ .rel.lbss.* .rel.gnu.linkonce.lb.*}) }
++  .rela.lbss    ${RELOCATING-0} : { *(.rela.lbss${RELOCATING+ .rela.lbss.* .rela.gnu.linkonce.lb.*}) }
++  .rel.lrodata  ${RELOCATING-0} : { *(.rel.lrodata${RELOCATING+ .rel.lrodata.* .rel.gnu.linkonce.lr.*}) }
++  .rela.lrodata ${RELOCATING-0} : { *(.rela.lrodata${RELOCATING+ .rela.lrodata.* .rela.gnu.linkonce.lr.*}) }"
++
++if test "${ENABLE_INITFINI_ARRAY}" = "yes"; then
++  SORT_INIT_ARRAY="KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))"
++  SORT_FINI_ARRAY="KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*)))"
++  CTORS_IN_INIT_ARRAY="EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o $OTHER_EXCLUDE_FILES) .ctors"
++  DTORS_IN_FINI_ARRAY="EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o $OTHER_EXCLUDE_FILES) .dtors"
++else
++  SORT_INIT_ARRAY="KEEP (*(SORT(.init_array.*)))"
++  SORT_FINI_ARRAY="KEEP (*(SORT(.fini_array.*)))"
++  CTORS_IN_INIT_ARRAY=
++  DTORS_IN_FINI_ARRAY=
++fi
++CTOR=".ctors        ${CONSTRUCTING-0} :
++  {
++    ${CONSTRUCTING+${CTOR_START}}
++    /* gcc uses crtbegin.o to find the start of
++       the constructors, so we make sure it is
++       first.  Because this is a wildcard, it
++       doesn't matter if the user does not
++       actually link against crtbegin.o; the
++       linker won't look for a file to match a
++       wildcard.  The wildcard also means that it
++       doesn't matter which directory crtbegin.o
++       is in.  */
++
++    KEEP (*crtbegin.o(.ctors))
++    KEEP (*crtbegin?.o(.ctors))
++
++    /* We don't want to include the .ctor section from
++       the crtend.o file until after the sorted ctors.
++       The .ctor section from the crtend file contains the
++       end of ctors marker and it must be last */
++
++    KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o $OTHER_EXCLUDE_FILES) .ctors))
++    KEEP (*(SORT(.ctors.*)))
++    KEEP (*(.ctors))
++    ${CONSTRUCTING+${CTOR_END}}
++  }"
++DTOR=".dtors        ${CONSTRUCTING-0} :
++  {
++    ${CONSTRUCTING+${DTOR_START}}
++    KEEP (*crtbegin.o(.dtors))
++    KEEP (*crtbegin?.o(.dtors))
++    KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o $OTHER_EXCLUDE_FILES) .dtors))
++    KEEP (*(SORT(.dtors.*)))
++    KEEP (*(.dtors))
++    ${CONSTRUCTING+${DTOR_END}}
++  }"
++
++TEXT_START_ADDR="SEGMENT_START(\"text-segment\", ${TEXT_START_ADDR})"
++SHLIB_TEXT_START_ADDR="SEGMENT_START(\"text-segment\", ${SHLIB_TEXT_START_ADDR:-0})"
++
++# Don't bother with separate code segment when there are data sections
++# between .plt and .text.
++if test -z "$TINY_READONLY_SECTION"; then
++  case "$LD_FLAG" in
++    *ro*textonly*)
++      if test -n "${ALL_TEXT_AFTER_RO}"; then
++        TEXT_AFTER_RO=" "
++      else
++        ALL_TEXT_BEFORE_RO=" "
++      fi
++      SEPARATE_TEXT=" "
++      TEXT_SEGMENT_ALIGN=". = ALIGN(${MAXPAGESIZE});"
++      ;;
++    *textonly*)
++      SEPARATE_TEXT=" "
++      TEXT_SEGMENT_ALIGN=". = ALIGN(${MAXPAGESIZE});"
++      ;;
++  esac
++fi
++
++if [ -z "$SEPARATE_CODE" ]; then
++  SIZEOF_HEADERS_CODE=" + SIZEOF_HEADERS"
++else
++  SIZEOF_HEADERS_CODE=
++fi
++
++# If this is for an embedded system, don't add SIZEOF_HEADERS.
++if [ -z "$EMBEDDED" ]; then
++   test -z "${TEXT_BASE_ADDRESS}" && TEXT_BASE_ADDRESS="${TEXT_START_ADDR}${SIZEOF_HEADERS_CODE}"
++else
++   test -z "${TEXT_BASE_ADDRESS}" && TEXT_BASE_ADDRESS="${TEXT_START_ADDR}"
++fi
++
++# ===========================================================================
++# Functions for generating parts of the linker script
++
++# Helper function for putting comments into scripts.
++# Useful when trying to track down script composition problems.
++# Use by adding:
++#   emit_comment "a message"
++# wherever necessary.
++
++emit_comment()
++{
++cat <<EOF
++  /* $1 */
++EOF
++}
++
++align_to_default_symbol_alignment()
++{
++cat <<EOF
++  ${RELOCATING+. = ALIGN(${ALIGNMENT});}
++EOF
++}
++
++align_to_default_section_alignment()
++{
++cat <<EOF
++  ${RELOCATING+. = ALIGN(. != 0 ? ${ALIGNMENT} : 1);}
++EOF
++}
++
++emit_header()
++{
++cat <<EOF
++/* Copyright (C) 2014-2026 Free Software Foundation, Inc.
++
++   Copying and distribution of this script, with or without modification,
++   are permitted in any medium without royalty provided the copyright
++   notice and this notice are preserved.  */
++
++OUTPUT_FORMAT("${OUTPUT_FORMAT}", "${BIG_OUTPUT_FORMAT}", "${LITTLE_OUTPUT_FORMAT}")
++OUTPUT_ARCH(${OUTPUT_ARCH})
++${RELOCATING+ENTRY(${ENTRY})}
++
++${RELOCATING+${LIB_SEARCH_DIRS}}
++${RELOCATING+${CREATE_SHLIB-${EXECUTABLE_SYMBOLS}}}
++${RELOCATING+${INPUT_FILES}}
++${RELOCATING- /* For some reason, the Solaris linker makes bad executables
++  if gld -r is used and the intermediate file has sections starting
++  at non-zero addresses.  Could be a Solaris ld bug, could be a GNU ld
++  bug.  But for now assigning the zero vmas works.  */}
++EOF
++}
++
++emit_early_ro()
++{
++cat <<EOF
++  ${INITIAL_READONLY_SECTIONS}
++EOF
++}
++
++emit_noinit()
++{
++  if test "${HAVE_NOINIT}" != "yes"; then
++    return
++  fi
++cat <<EOF  
++  /* This section contains data that is not initialized during load,
++     or during the application's initialization sequence.  */
++  .noinit ${RELOCATING-0} (NOLOAD) : ${RELOCATING+ALIGN(${ALIGNMENT})}
++  {
++    ${RELOCATING+PROVIDE (__noinit_start = .);}
++    *(.noinit${RELOCATING+ .noinit.* .gnu.linkonce.n.*})
++    $(align_to_default_symbol_alignment)
++    ${RELOCATING+PROVIDE (__noinit_end = .);}
++  }
++EOF
++}
++
++emit_persistent()
++{
++  if test "${HAVE_PERSISTENT}" != "yes"; then
++    return
++  fi
++cat <<EOF    
++  /* This section contains data that is initialized during load,
++     but not during the application's initialization sequence.  */
++  .persistent ${RELOCATING-0} : ${RELOCATING+ALIGN(${ALIGNMENT})}
++  {
++    ${RELOCATING+PROVIDE (__persistent_start = .);}
++    *(.persistent${RELOCATING+ .persistent.* .gnu.linkonce.p.*})
++    $(align_to_default_symbol_alignment)
++    ${RELOCATING+PROVIDE (__persistent_end = .);}
++  }
++EOF
++}
++
++emit_executable_start()
++{
++cat <<EOF
++  ${RELOCATING+${SEPARATE_TEXT-/* Read-only sections, merged into text segment: */}}
++
++  ${CREATE_SHLIB-${CREATE_PIE-${RELOCATING+PROVIDE (__executable_start = ${TEXT_START_ADDR});
++  . = ${TEXT_BASE_ADDRESS};}}}
++
++  ${CREATE_SHLIB+${RELOCATING+. = ${SHLIB_TEXT_START_ADDR}${SIZEOF_HEADERS_CODE};}}
++
++  ${CREATE_PIE+${RELOCATING+PROVIDE (__executable_start = ${SHLIB_TEXT_START_ADDR});
++  . = ${SHLIB_TEXT_START_ADDR}${SIZEOF_HEADERS_CODE};}}
++
++  /* Place the build-id as close to the ELF headers as possible.  This
++     maximises the chance the build-id will be present in core files,
++     which GDB can then use to locate the associated debuginfo file.  */
++  .note.gnu.build-id ${RELOCATING-0}: { *(.note.gnu.build-id) }
++EOF
++}
++
++emit_dyn()
++{
++  test -n "${RELOCATING+0}" || unset NON_ALLOC_DYN
++  test -z "${NON_ALLOC_DYN}" || TEXT_DYNAMIC=
++
++cat > ldscripts/dyntmp.$$ <<EOF
++  ${TEXT_DYNAMIC+${DYNAMIC}}
++  .hash         ${RELOCATING-0} : { *(.hash) }
++  .gnu.hash     ${RELOCATING-0} : { *(.gnu.hash) }
++  .dynsym       ${RELOCATING-0} : { *(.dynsym) }
++  .dynstr       ${RELOCATING-0} : { *(.dynstr) }
++  .gnu.version  ${RELOCATING-0} : { *(.gnu.version) }
++  .gnu.version_d ${RELOCATING-0}: { *(.gnu.version_d) }
++  .gnu.version_r ${RELOCATING-0}: { *(.gnu.version_r) }
++EOF
++
++if [ "x$COMBRELOC" = x ]; then
++  COMBRELOCCAT="cat >> ldscripts/dyntmp.$$"
++else
++  COMBRELOCCAT="cat > $COMBRELOC"
++fi
++
++eval $COMBRELOCCAT <<EOF
++  ${INITIAL_RELOC_SECTIONS}
++  .rel.init     ${RELOCATING-0} : { *(.rel.init) }
++  .rela.init    ${RELOCATING-0} : { *(.rela.init) }
++  .rel.text     ${RELOCATING-0} : { *(.rel.text${RELOCATING+ .rel.text.* .rel.gnu.linkonce.t.*}) }
++  .rela.text    ${RELOCATING-0} : { *(.rela.text${RELOCATING+ .rela.text.* .rela.gnu.linkonce.t.*}) }
++  .rel.fini     ${RELOCATING-0} : { *(.rel.fini) }
++  .rela.fini    ${RELOCATING-0} : { *(.rela.fini) }
++  .rel.${RODATA_NAME}   ${RELOCATING-0} : { *(.rel.${RODATA_NAME}${RELOCATING+ .rel.${RODATA_NAME}.* .rel.gnu.linkonce.r.*}) }
++  .rela.${RODATA_NAME}  ${RELOCATING-0} : { *(.rela.${RODATA_NAME}${RELOCATING+ .rela.${RODATA_NAME}.* .rela.gnu.linkonce.r.*}) }
++  ${OTHER_READONLY_RELOC_SECTIONS}
++  .rel.data.rel.ro ${RELOCATING-0} : { *(.rel.data.rel.ro${RELOCATING+ .rel.data.rel.ro.* .rel.gnu.linkonce.d.rel.ro.*}) }
++  .rela.data.rel.ro ${RELOCATING-0} : { *(.rela.data.rel.ro${RELOCATING+ .rela.data.rel.ro.* .rela.gnu.linkonce.d.rel.ro.*}) }
++  .rel.data     ${RELOCATING-0} : { *(.rel.data${RELOCATING+ .rel.data.* .rel.gnu.linkonce.d.*}) }
++  .rela.data    ${RELOCATING-0} : { *(.rela.data${RELOCATING+ .rela.data.* .rela.gnu.linkonce.d.*}) }
++  ${OTHER_READWRITE_RELOC_SECTIONS}
++  .rel.tdata	${RELOCATING-0} : { *(.rel.tdata${RELOCATING+ .rel.tdata.* .rel.gnu.linkonce.td.*}) }
++  .rela.tdata	${RELOCATING-0} : { *(.rela.tdata${RELOCATING+ .rela.tdata.* .rela.gnu.linkonce.td.*}) }
++  .rel.tbss	${RELOCATING-0} : { *(.rel.tbss${RELOCATING+ .rel.tbss.* .rel.gnu.linkonce.tb.*}) }
++  .rela.tbss	${RELOCATING-0} : { *(.rela.tbss${RELOCATING+ .rela.tbss.* .rela.gnu.linkonce.tb.*}) }
++  .rel.ctors    ${RELOCATING-0} : { *(.rel.ctors) }
++  .rela.ctors   ${RELOCATING-0} : { *(.rela.ctors) }
++  .rel.dtors    ${RELOCATING-0} : { *(.rel.dtors) }
++  .rela.dtors   ${RELOCATING-0} : { *(.rela.dtors) }
++  .rel.got      ${RELOCATING-0} : { *(.rel.got) }
++  .rela.got     ${RELOCATING-0} : { *(.rela.got) }
++  ${OTHER_GOT_RELOC_SECTIONS}
++  ${REL_SDATA}
++  ${REL_SBSS}
++  ${REL_SDATA2}
++  ${REL_SBSS2}
++  .rel.${BSS_NAME}      ${RELOCATING-0} : { *(.rel.${BSS_NAME}${RELOCATING+ .rel.${BSS_NAME}.* .rel.gnu.linkonce.b.*}) }
++  .rela.${BSS_NAME}     ${RELOCATING-0} : { *(.rela.${BSS_NAME}${RELOCATING+ .rela.${BSS_NAME}.* .rela.gnu.linkonce.b.*}) }
++  ${REL_LARGE}
++  ${IREL_IN_PLT+$REL_IFUNC}
++  ${IREL_IN_PLT+$RELA_IFUNC}
++  ${IREL_IN_PLT-$REL_IPLT}
++  ${IREL_IN_PLT-$RELA_IPLT}
++EOF
++
++if [ -n "$COMBRELOC" ]; then
++cat >> ldscripts/dyntmp.$$ <<EOF
++  .rel.dyn      ${RELOCATING-0} :
++    {
++EOF
++
++sed -e '/^[	 ]*[{}][	 ]*$/d;/:[	 ]*$/d;/\.rela\./d;/__rela_iplt_/d;s/^.*: { *\(.*\)}$/      \1/' $COMBRELOC >> ldscripts/dyntmp.$$
++
++cat >> ldscripts/dyntmp.$$ <<EOF
++    }
++  .rela.dyn     ${RELOCATING-0} :
++    {
++EOF
++
++sed -e '/^[	 ]*[{}][	 ]*$/d;/:[	 ]*$/d;/\.rel\./d;/__rel_iplt_/d;s/^.*: { *\(.*\)}/      \1/' $COMBRELOC >> ldscripts/dyntmp.$$
++
++cat >> ldscripts/dyntmp.$$ <<EOF
++    }
++EOF
++
++fi
++
++cat >> ldscripts/dyntmp.$$ <<EOF
++  .rel.plt      ${RELOCATING-0} :
++    {
++      *(.rel.plt)
++      ${IREL_IN_PLT+${RELOCATING+${CREATE_PIC-PROVIDE_HIDDEN ($(def_symbol "__rel_iplt_start"));}}}
++      ${IREL_IN_PLT+${RELOCATING+*(.rel.iplt)}}
++      ${IREL_IN_PLT+${RELOCATING+${CREATE_PIC-PROVIDE_HIDDEN ($(def_symbol "__rel_iplt_end"));}}}
++    }
++  .rela.plt     ${RELOCATING-0} :
++    {
++      *(.rela.plt)
++      ${IREL_IN_PLT+${RELOCATING+${CREATE_PIC-PROVIDE_HIDDEN ($(def_symbol "__rela_iplt_start"));}}}
++      ${IREL_IN_PLT+${RELOCATING+*(.rela.iplt)}}
++      ${IREL_IN_PLT+${RELOCATING+${CREATE_PIC-PROVIDE_HIDDEN ($(def_symbol "__rela_iplt_end"));}}}
++    }
++  ${OTHER_PLT_RELOC_SECTIONS}
++EOF
++
++  if test -z "${NO_REL_RELOCS}${NO_RELA_RELOCS}"; then
++    cat ldscripts/dyntmp.$$
++  else
++    if test -z "${NO_REL_RELOCS}"; then
++      sed -e '/^[	 ]*\.rela\.[^}]*$/,/}/d;/^[	 ]*\.rela\./d;/__rela_iplt_/d' ldscripts/dyntmp.$$
++    fi
++    if test -z "${NO_RELA_RELOCS}"; then
++      sed -e '/^[	 ]*\.rel\.[^}]*$/,/}/d;/^[	 ]*\.rel\./d;/__rel_iplt_/d' ldscripts/dyntmp.$$
++    fi
++  fi
++  
++  rm -f ldscripts/dyntmp.$$
++
++  if test -n "${HAVE_DT_RELR}"; then
++    echo "  .relr.dyn : { *(.relr.dyn) }"
++  fi
++}
++
++align_text()
++{
++  if test -n "$TEXT_SEGMENT_ALIGN"; then
++cat <<EOF
++  ${RELOCATING+/* Align the text segment.  */}
++  ${RELOCATING+${TEXT_SEGMENT_ALIGN}}
++EOF
++fi
++}
++
++emit_text()
++{
++cat <<EOF
++  /* Start of the executable code region.  */
++  .init         ${RELOCATING-0}${RELOCATING+${INIT_ADDR}} :
++  {
++    ${RELOCATING+${INIT_START}}
++    KEEP (*(SORT_NONE(.init)))
++    ${RELOCATING+${INIT_END}}
++  } ${FILL}
++
++  ${TINY_READONLY_SECTION}
++  
++  .text         ${RELOCATING-0} :
++  {
++    ${RELOCATING+${TEXT_START_SYMBOLS}}
++    ${RELOCATING+*(.text.unlikely .text.*_unlikely .text.unlikely.*)}
++    ${RELOCATING+*(.text.exit .text.exit.*)}
++    ${RELOCATING+*(.text.startup .text.startup.*)}
++    ${RELOCATING+*(.text.hot .text.hot.*)}
++    ${RELOCATING+*(SORT(.text.sorted.*))}
++    *(.text .stub${RELOCATING+ .text.* .gnu.linkonce.t.*})
++    /* .gnu.warning sections are handled specially by elf.em.  */
++    *(.gnu.warning)
++    ${RELOCATING+${OTHER_TEXT_SECTIONS}}
++  } ${FILL}
++  . = ALIGN(4096);
++  ${TEXT_PLT+${PLT_NEXT_DATA-${PLT} ${OTHER_PLT_SECTIONS}}}
++  . = ALIGN(4096);
++  .fini         ${RELOCATING-0}${RELOCATING+${FINI_ADDR}} :
++  {
++    ${RELOCATING+${FINI_START}}
++    KEEP (*(SORT_NONE(.fini)))
++    ${RELOCATING+${FINI_END}}
++  } ${FILL}
++EOF
++}
++
++emit_text_end_symbols()
++{
++cat <<EOF
++  ${RELOCATING+${ETEXT_LAST_IN_RODATA_SEGMENT-PROVIDE (__${ETEXT_NAME} = .);}}
++  ${RELOCATING+${ETEXT_LAST_IN_RODATA_SEGMENT-PROVIDE (_${ETEXT_NAME} = .);}}
++  ${RELOCATING+${ETEXT_LAST_IN_RODATA_SEGMENT-PROVIDE (${ETEXT_NAME} = .);}}
++EOF
++}
++
++align_rodata()
++{
++cat <<EOF
++  /* Start of the Read Only Data region.  */
++EOF
++
++if test -n "${SEPARATE_CODE}${SEPARATE_TEXT}"; then
++
++  if test -n "${RODATA_ADDR}"; then
++    RODATA_ADDR="SEGMENT_START(\"rodata-segment\", ${RODATA_ADDR}) + SIZEOF_HEADERS"
++  else
++    RODATA_ADDR="ALIGN(${SEGMENT_SIZE}) + (. & (${MAXPAGESIZE} - 1))"
++    RODATA_ADDR="SEGMENT_START(\"rodata-segment\", ${RODATA_ADDR})"
++  fi
++  
++  if test -n "${SHLIB_RODATA_ADDR}"; then
++    SHLIB_RODATA_ADDR="SEGMENT_START(\"rodata-segment\", ${SHLIB_RODATA_ADDR}) + SIZEOF_HEADERS"
++  else
++    SHLIB_RODATA_ADDR="ALIGN(${SEGMENT_SIZE}) + (. & (${MAXPAGESIZE} - 1))"
++    SHLIB_RODATA_ADDR="SEGMENT_START(\"rodata-segment\", ${SHLIB_RODATA_ADDR})"
++  fi
++  
++cat <<EOF
++  ${RELOCATING+/* Adjust the address for the rodata segment.  We want to adjust up to
++     the same address within the page on the next page up.  */
++  ${CREATE_SHLIB-${CREATE_PIE-. = ${RODATA_ADDR};}}
++  ${CREATE_SHLIB+. = ${SHLIB_RODATA_ADDR};}
++  ${CREATE_PIE+. = ${SHLIB_RODATA_ADDR};}}
++EOF
++fi
++}
++
++emit_rodata()
++{
++cat <<EOF
++  ${WRITABLE_RODATA-${RODATA}}
++  .${RODATA_NAME}1      ${RELOCATING-0} : { *(.${RODATA_NAME}1) }
++  ${CREATE_SHLIB-${SDATA2}}
++  ${CREATE_SHLIB-${SBSS2}}
++  ${OTHER_READONLY_SECTIONS}
++  .eh_frame_hdr ${RELOCATING-0} : { *(.eh_frame_hdr)${RELOCATING+ *(.eh_frame_entry .eh_frame_entry.*)} }
++  .eh_frame     ${RELOCATING-0} : ONLY_IF_RO { KEEP (*(.eh_frame))${RELOCATING+ *(.eh_frame.*)} }
++  .sframe       ${RELOCATING-0} : ONLY_IF_RO { KEEP (*(.sframe))${RELOCATING+ *(.sframe.*)} }
++  .gcc_except_table ${RELOCATING-0} : ONLY_IF_RO { *(.gcc_except_table${RELOCATING+ .gcc_except_table.*}) }
++  .gnu_extab ${RELOCATING-0} : ONLY_IF_RO { *(.gnu_extab*) }
++
++  /* These sections are generated by the Sun/Oracle C++ compiler.  */
++  .exception_ranges ${RELOCATING-0} : ONLY_IF_RO { *(.exception_ranges${RELOCATING+*}) }
++
++  ${TEXT_PLT+${PLT_NEXT_DATA+${PLT} ${OTHER_PLT_SECTIONS}}}
++EOF
++
++test -n "${RELOCATING}" && cat <<EOF
++  /* Various note sections.  Placed here so that they are always included
++     in the read-only segment and not treated as orphan sections.  The
++     current orphan handling algorithm does place note sections after R/O
++     data, but this is not guaranteed to always be the case.  */
++  .note.build-id :      { *(.note.build-id) } ${REGION}
++  .note.GNU-stack :     { *(.note.GNU-stack) } ${REGION}
++  .note.gnu.property :  { *(.note.gnu.property) } ${REGION}
++  .note.ABI-tag :       { *(.note.ABI-tag) } ${REGION}
++  .note.package :       { *(.note.package) } ${REGION}
++  .note.dlopen :        { *(.note.dlopen) } ${REGION}
++  .note.netbsd.ident :  { *(.note.netbsd.ident) } ${REGION}
++  .note.openbsd.ident : { *(.note.openbsd.ident) } ${REGION}
++
++  ${ETEXT_LAST_IN_RODATA_SEGMENT+PROVIDE (__${ETEXT_NAME} = .);}
++  ${ETEXT_LAST_IN_RODATA_SEGMENT+PROVIDE (_${ETEXT_NAME} = .);}
++  ${ETEXT_LAST_IN_RODATA_SEGMENT+PROVIDE (${ETEXT_NAME} = .);}
++EOF
++}
++
++align_data()
++{
++cat <<EOF
++  /* Start of the Read Write Data region.  */
++  ${RELOCATING+/* Adjust the address for the data segment.  We want to adjust up to
++     the same address within the page on the next page up.  */}
++  ${CREATE_SHLIB-${CREATE_PIE-${RELOCATING+. = ${DATA_ADDR-${DATA_SEGMENT_ALIGN}};}}}
++  ${CREATE_SHLIB+. = ${SHLIB_DATA_ADDR-${DATA_SEGMENT_ALIGN}};}
++  ${CREATE_PIE+. = ${SHLIB_DATA_ADDR-${DATA_SEGMENT_ALIGN}};}
++EOF
++}
++
++emit_init_fini_arrays()
++{
++cat <<EOF
++.preinit_array    :
++  {
++    ${CREATE_SHLIB-PROVIDE_HIDDEN ($(def_symbol "__preinit_array_start"));}
++    KEEP (*(.preinit_array))
++    ${CREATE_SHLIB-PROVIDE_HIDDEN ($(def_symbol "__preinit_array_end"));}
++  }
++
++  .init_array    :
++  {
++    ${CREATE_SHLIB-PROVIDE_HIDDEN ($(def_symbol "__init_array_start"));}
++    ${SORT_INIT_ARRAY}
++    KEEP (*(.init_array ${CTORS_IN_INIT_ARRAY}))
++    ${CREATE_SHLIB-PROVIDE_HIDDEN ($(def_symbol "__init_array_end"));}
++  }
++
++  .fini_array    :
++  {
++    ${CREATE_SHLIB-PROVIDE_HIDDEN ($(def_symbol "__fini_array_start"));}
++    ${SORT_FINI_ARRAY}
++    KEEP (*(.fini_array ${DTORS_IN_FINI_ARRAY}))
++    ${CREATE_SHLIB-PROVIDE_HIDDEN ($(def_symbol "__fini_array_end"));}
++  }
++EOF
++}
++
++emit_data()
++{
++cat <<EOF
++  /* Exception handling.  */
++  .eh_frame     ${RELOCATING-0} : ONLY_IF_RW { KEEP (*(.eh_frame))${RELOCATING+ *(.eh_frame.*)} }
++  .sframe       ${RELOCATING-0} : ONLY_IF_RW { KEEP (*(.sframe))${RELOCATING+ *(.sframe.*)} }
++  .gnu_extab    ${RELOCATING-0} : ONLY_IF_RW { *(.gnu_extab) }
++  .gcc_except_table ${RELOCATING-0} : ONLY_IF_RW { *(.gcc_except_table${RELOCATING+ .gcc_except_table.*}) }
++  .exception_ranges ${RELOCATING-0} : ONLY_IF_RW { *(.exception_ranges${RELOCATING+*}) }
++
++  /* Thread Local Storage sections.  */
++  .tdata	${RELOCATING-0} :
++   {
++     ${RELOCATING+${CREATE_SHLIB-PROVIDE_HIDDEN ($(def_symbol "__tdata_start"));}}
++     *(.tdata${RELOCATING+ .tdata.* .gnu.linkonce.td.*})
++   }
++  .tbss		${RELOCATING-0} : { *(.tbss${RELOCATING+ .tbss.* .gnu.linkonce.tb.*})${RELOCATING+ *(.tcommon)} }
++
++  ${RELOCATING+$(emit_init_fini_arrays)}
++
++  ${SMALL_DATA_CTOR-${RELOCATING+${CTOR}}}
++  ${SMALL_DATA_DTOR-${RELOCATING+${DTOR}}}
++
++  .jcr          ${RELOCATING-0} : { KEEP (*(.jcr)) }
++
++  ${RELOCATING+${DATARELRO}}
++  ${OTHER_RELRO_SECTIONS}
++  ${TEXT_DYNAMIC-${DYNAMIC}}
++  ${OTHER_RELRO_SECTIONS_2}
++  ${DATA_GOT+${RELRO_NOW+${DATA_PLT+${PLT_BEFORE_GOT+${PLT}}}}}
++  ${DATA_GOT+${RELRO_NOW+${GOT}}}
++  ${DATA_GOT+${RELRO_NOW+${GOTPLT}}}
++  ${DATA_GOT+${RELRO_NOW-${SEPARATE_GOTPLT+${GOT}}}}
++  ${RELOCATING+${DATA_SEGMENT_RELRO_END}}
++  ${INITIAL_READWRITE_SECTIONS}
++  ${DATA_SDATA+${SDATA}}
++  ${DATA_SDATA+${OTHER_SDATA_SECTIONS}}
++  ${DATA_SDATA+${SBSS}}
++  ${DATA_GOT+${RELRO_NOW-${DATA_PLT+${PLT_BEFORE_GOT+${PLT}}}}}
++  ${DATA_GOT+${RELRO_NOW-${SEPARATE_GOTPLT-${GOT}}}}
++  ${DATA_GOT+${RELRO_NOW-${GOTPLT}}}
++
++  ${DATA_PLT+${PLT_BEFORE_GOT-${PLT}}}
++
++  .data         ${RELOCATING-0}${RELOCATING+${DATA_SECTION_ALIGNMENT}} :
++  {
++    ${RELOCATING+${DATA_START_SYMBOLS}}
++    *(.data${RELOCATING+ .data.* .gnu.linkonce.d.*})
++    ${CONSTRUCTING+SORT(CONSTRUCTORS)}
++  }
++
++  .data1        ${RELOCATING-0} : { *(.data1) }
++
++  ${WRITABLE_RODATA+${RODATA}}
++  ${OTHER_READWRITE_SECTIONS}
++
++  ${SMALL_DATA_CTOR+${RELOCATING+${CTOR}}}
++  ${SMALL_DATA_DTOR+${RELOCATING+${DTOR}}}
++  ${SDATA_GOT+${DATA_PLT+${PLT_BEFORE_GOT+${PLT}}}}
++  
++  ${SDATA_GOT+${RELOCATING+${OTHER_GOT_SYMBOLS+. = .; ${OTHER_GOT_SYMBOLS}}}}
++
++  ${SDATA_GOT+${GOT}}
++  ${SDATA_GOT+${OTHER_GOT_SECTIONS}}
++
++  ${DATA_SDATA-${SDATA}}
++  ${DATA_SDATA-${OTHER_SDATA_SECTIONS}}
++
++  ${RELOCATING+${SYMBOL_ABI_ALIGNMENT+. = ALIGN(${SYMBOL_ABI_ALIGNMENT});}}
++  ${RELOCATING+${DATA_END_SYMBOLS-${CREATE_SHLIB+PROVIDE (}$(def_symbol "_edata")${CREATE_SHLIB+)};
++  PROVIDE ($(def_symbol "edata"));}}
++
++  $(emit_persistent)
++
++  ${RELOCATING+. = ALIGN(ALIGNOF(NEXT_SECTION));}
++  ${RELOCATING+${CREATE_SHLIB+PROVIDE (}$(def_symbol "__bss_start")${CREATE_SHLIB+)};}
++  ${RELOCATING+${OTHER_BSS_SYMBOLS}}
++
++  ${DATA_SDATA-${SBSS}}
++  ${BSS_PLT+${PLT}}
++  .${BSS_NAME}          ${RELOCATING-0} :
++  {
++    ${RELOCATING+*(.dynbss)}
++    *(.${BSS_NAME}${RELOCATING+ .${BSS_NAME}.* .gnu.linkonce.b.*})
++    ${RELOCATING+*(COMMON)}
++    /* Align here to ensure that in the common case of there only being one
++       type of .bss section, the section occupies space up to _end.
++       Align after .bss to ensure correct alignment even if the
++       .bss section disappears because there are no input sections.
++       FIXME: Why do we need it? When there is no .bss section, we do not
++       pad the .data section.  */
++    $(align_to_default_section_alignment)
++  }
++
++  ${OTHER_BSS_SECTIONS}
++
++  $(emit_large_bss 0)
++
++  ${RELOCATING+${OTHER_BSS_END_SYMBOLS}}
++
++  $(emit_noinit)
++
++  $(align_to_default_symbol_alignment)
++EOF
++}
++
++align_large_data()
++{
++  LARGE_DATA_ADDR=". = SEGMENT_START(\"ldata-segment\", ${LARGE_DATA_ADDR-.});"
++  SHLIB_LARGE_DATA_ADDR=". = SEGMENT_START(\"ldata-segment\", ${SHLIB_LARGE_DATA_ADDR-.});"
++
++cat <<EOF
++  /* Start of the Large Data region.  */
++  ${RELOCATING+${CREATE_SHLIB-${CREATE_PIE-${LARGE_DATA_ADDR}}}}
++  ${CREATE_SHLIB+${SHLIB_LARGE_DATA_ADDR}}
++  ${CREATE_PIE+${SHLIB_LARGE_DATA_ADDR}}
++EOF
++}
++
++emit_large_bss()
++{
++  if test "${LARGE_SECTIONS}" != "yes"; then
++    return
++  fi
++
++  if test "$1" = "0"; then
++    if test -n "${LARGE_BSS_AFTER_BSS}"; then
++      return
++    fi
++  else
++    if test -z "${LARGE_BSS_AFTER_BSS}"; then
++      return
++    fi
++  fi  
++
++cat <<EOF
++  .lbss ${RELOCATING-0} :
++    {
++      ${RELOCATING+*(.dynlbss)}
++      *(.lbss${RELOCATING+ .lbss.* .gnu.linkonce.lb.*})
++      ${RELOCATING+*(LARGE_COMMON)}
++    }
++EOF
++}
++
++emit_large_data()
++{
++  if test "${LARGE_SECTIONS}" != "yes"; then
++    return
++  fi
++    
++cat <<EOF
++  .lrodata ${RELOCATING-0} ${RELOCATING+ALIGN(${MAXPAGESIZE}) + (. & (${MAXPAGESIZE} - 1))} :
++  {
++    *(.lrodata${RELOCATING+ .lrodata.* .gnu.linkonce.lr.*})
++  }
++
++  .ldata ${RELOCATING-0} ${RELOCATING+ALIGN(${MAXPAGESIZE}) + (. & (${MAXPAGESIZE} - 1))} :
++  {
++    *(.ldata${RELOCATING+ .ldata.* .gnu.linkonce.l.*})
++    $(align_to_default_section_alignment)
++  }
++
++  $(emit_large_bss 1)
++EOF
++}
++
++emit_end_symbols()
++{
++cat <<EOF
++  ${RELOCATING+${OTHER_END_SYMBOLS}}
++
++  ${RELOCATING+${END_SYMBOLS-${CREATE_SHLIB+PROVIDE (}$(def_symbol "_end")${CREATE_SHLIB+)};
++  PROVIDE ($(def_symbol "end"));}}
++
++  ${RELOCATING+${DATA_SEGMENT_END}}
++EOF
++}
++
++emit_tiny_data()
++{
++cat <<EOF
++  /* Start of the Tiny Data region.  */
++  ${TINY_DATA_SECTION}
++  ${TINY_BSS_SECTION}
++EOF
++}
++
++emit_stack()
++{
++  if test -z "${STACK_ADDR}"; then
++    return
++  fi
++
++cat <<EOF
++  /* Stack.  */
++  .stack        ${RELOCATING-0}${RELOCATING+${STACK_ADDR}} :
++  {
++    ${RELOCATING+$(def_symbol "_stack");}
++    *(.stack)
++    ${RELOCATING+${STACK_SENTINEL}}
++  }
++EOF
++}
++
++emit_misc()
++{
++  source_sh $srcdir/scripttempl/misc-sections.sc
++  source_sh $srcdir/scripttempl/DWARF.sc
++
++cat <<EOF
++  ${ATTRS_SECTIONS}
++  ${OTHER_SECTIONS}
++  ${RELOCATING+${OTHER_SYMBOLS}}
++  ${RELOCATING+${DISCARDED}}
++EOF
++}
++
++# ===========================================================================
++# The script:
++
++emit_header
++
++cat <<EOF
++SECTIONS
++{
++EOF
++
++  emit_executable_start
++
++  #------Early Read Only Data -----------------------------------------------
++
++  if test -n "${TEXT_AFTER_RO}" || test -z "${ALL_TEXT_BEFORE_RO}"; then
++    # We are allowed to put R/O sections before code sections.
++    # Doing so either puts read only data into the code segment, if the data
++    # and code sections are contiguous, or creates a data segment followed by
++    # a code segment, followed by another data segment (for read/write data).
++    # Having three segments like this makes the binary bigger, which is a
++    # problem for some scenarios, eg containers.  On the other hand, having
++    # data in an executable code segment means that it might provide an
++    # avenue of attack for bad actors, which is a security risk.
++
++    test -n "${SEPARATE_CODE}" || emit_early_ro
++    test -n "${NON_ALLOC_DYN}${SEPARATE_CODE}" || emit_dyn
++    test -z "${TEXT_AFTER_RO}" || emit_rodata
++
++    # We only need the alignment if we have emitted some sections.
++    if test -z "${SEPARATE_CODE}"; then
++      align_text
++    elif test -z "${NON_ALLOC_DYN}${SEPARATE_CODE}"; then
++      align_text
++    fi
++  fi
++  
++  #------Executable Code ----------------------------------------------------
++
++  # We do not invoke "align_text" here as doing so will increase the file
++  # size.  Normally having the text segment at the start of the file will
++  # automatically mean that it is aligned and if we have emitted any R/O
++  # sections due to the code above, then extra alignment will have already
++  # been generated.
++
++  emit_text
++  emit_text_end_symbols
++
++  # FIXME: We emit the text segment alignment operations again here.
++  # (If they are defined).  It is not clear why we do this.
++
++  align_text
++
++  if test -z "${TEXT_AFTER_RO}"; then
++    #------Read Only Data ------------------------------------------------
++
++    align_rodata
++
++    # If we have not already emitted the early read only data sections then do
++    # so now.  Also if the dynamic section has not already been emitted and we
++    # can put it into the data segment, then do that here as well.
++
++    if test -n "${ALL_TEXT_BEFORE_RO}"; then
++      test -n "${SEPARATE_CODE}" || emit_early_ro
++      test -n "${NON_ALLOC_DYN}${SEPARATE_CODE}" || emit_dyn
++    fi
++    test -z "${SEPARATE_CODE}" || emit_early_ro
++    test -z "${SEPARATE_CODE}" || emit_dyn
++
++    # Now emit the rest of the read only data.
++
++    emit_rodata
++  fi
++
++  #------Read Write Data ----------------------------------------------------
++
++  align_data
++  emit_data
++  
++  align_large_data
++  emit_large_data
++
++  align_to_default_symbol_alignment
++  emit_end_symbols
++
++  # FIXME: Should the tiny data sections appear before the end symbols ?
++
++  emit_tiny_data
++
++  #------Miscellaneous ------------------------------------------------------
++
++  emit_stack
++
++  test -z "${NON_ALLOC_DYN}" || emit_dyn
++
++  emit_misc
++
++cat <<EOF
++}
++EOF
+diff --git a/libiberty/Makefile.in b/libiberty/Makefile.in
+index 6d8c88eb..5881915c 100644
+--- a/libiberty/Makefile.in
++++ b/libiberty/Makefile.in
+@@ -144,7 +144,7 @@ CFILES = alloca.c argv.c asprintf.c atexit.c				\
+ 	objalloc.c obstack.c						\
+ 	partition.c pexecute.c						\
+ 	 pex-common.c pex-djgpp.c pex-msdos.c pex-one.c			\
+-	 pex-unix.c pex-win32.c						\
++	 pex-unix.c pex-win32.c pex-amigaos.c				\
+          physmem.c putenv.c						\
+ 	random.c regex.c rename.c rindex.c				\
+ 	rust-demangle.c							\
+@@ -218,6 +218,7 @@ CONFIGURED_OFILES = ./asprintf.$(objext) ./atexit.$(objext)		\
+ 	 ./mempcpy.$(objext) ./memset.$(objext) ./mkstemps.$(objext)	\
+ 	./pex-djgpp.$(objext) ./pex-msdos.$(objext)			\
+ 	 ./pex-unix.$(objext) ./pex-win32.$(objext)			\
++	 ./pex-amigaos.$(objext)					\
+ 	 ./putenv.$(objext)						\
+ 	./random.$(objext) ./rename.$(objext) ./rindex.$(objext)	\
+ 	./setenv.$(objext) 						\
+@@ -1188,6 +1189,16 @@ $(CONFIGURED_OFILES): stamp-picdir stamp-noasandir
+ 	else true; fi
+ 	$(COMPILE.c) $(srcdir)/pex-unix.c $(OUTPUT_OPTION)
+ 
++./pex-amigaos.$(objext): $(srcdir)/pex-amigaos.c config.h $(INCDIR)/ansidecl.h \
++	$(INCDIR)/libiberty.h $(srcdir)/pex-common.h
++	if [ x"$(PICFLAG)" != x ]; then \
++	  $(COMPILE.c) $(PICFLAG) $(srcdir)/pex-amigaos.c -o pic/$@; \
++	else true; fi
++	if [ x"$(NOASANFLAG)" != x ]; then \
++	  $(COMPILE.c) $(PICFLAG) $(NOASANFLAG) $(srcdir)/pex-amigaos.c -o noasan/$@; \
++	else true; fi
++	$(COMPILE.c) $(srcdir)/pex-amigaos.c $(OUTPUT_OPTION)
++
+ ./pex-win32.$(objext): $(srcdir)/pex-win32.c config.h $(INCDIR)/ansidecl.h \
+ 	$(INCDIR)/libiberty.h $(srcdir)/pex-common.h
+ 	if [ x"$(PICFLAG)" != x ]; then \
+diff --git a/libiberty/configure b/libiberty/configure
+index 379a3cfa..8eeef30f 100755
+--- a/libiberty/configure
++++ b/libiberty/configure
+@@ -7906,6 +7906,7 @@ case "${host}" in
+      *-*-mingw* | *-*-winnt*)	pexecute=pex-win32  ;;
+      *-*-msdosdjgpp*)		pexecute=pex-djgpp  ;;
+      *-*-msdos*)		pexecute=pex-msdos  ;;
++     powerpc-*-amigaos*)	pexecute=pex-amigaos ;;
+      *)				pexecute=pex-unix   ;;
+ esac
+ 
+diff --git a/libiberty/configure.ac b/libiberty/configure.ac
+index 03b835ce..57763e34 100644
+--- a/libiberty/configure.ac
++++ b/libiberty/configure.ac
+@@ -765,6 +765,7 @@ case "${host}" in
+      *-*-mingw* | *-*-winnt*)	pexecute=pex-win32  ;;
+      *-*-msdosdjgpp*)		pexecute=pex-djgpp  ;;
+      *-*-msdos*)		pexecute=pex-msdos  ;;
++     powerpc-*-amigaos*)	pexecute=pex-amigaos ;;
+      *)				pexecute=pex-unix   ;;
+ esac
+ AC_SUBST(pexecute)
+diff --git a/libiberty/fnmatch.c b/libiberty/fnmatch.c
+index a103aeba..c811f870 100644
+--- a/libiberty/fnmatch.c
++++ b/libiberty/fnmatch.c
+@@ -47,6 +47,10 @@ Boston, MA 02110-1301, USA.  */
+ #include <fnmatch.h>
+ #include <safe-ctype.h>
+ 
++/* Ignore all this code if targeting AmigaOS4 with clib clib4, because
++   the clib4 clib provided it own fnmatch implementation */
++#if !(defined(__amigaos4__) && defined(__CLIB4__))
++
+ /* Comment out all this code if we are using the GNU C Library, and are not
+    actually compiling the library itself.  This code is part of the GNU C
+    Library, but also included in many other GNU distributions.  Compiling
+@@ -54,7 +58,6 @@ Boston, MA 02110-1301, USA.  */
+    (especially if it is a shared library).  Rather than having every GNU
+    program understand `configure --with-gnu-libc' and omit the object files,
+    it is simpler to just do this in the source for each such file.  */
+-
+ #if defined (_LIBC) || !defined (__GNU_LIBRARY__)
+ 
+ 
+@@ -218,3 +221,4 @@ fnmatch (const char *pattern, const char *string, int flags)
+ }
+ 
+ #endif	/* _LIBC or not __GNU_LIBRARY__.  */
++#endif  /* not (AMIGAOS and CLIB4) $*/
+diff --git a/libiberty/lbasename.c b/libiberty/lbasename.c
+index b43e0bff..df11c4c2 100644
+--- a/libiberty/lbasename.c
++++ b/libiberty/lbasename.c
+@@ -40,6 +40,9 @@ and a path ending in @code{/} returns the empty string after it.
+ #ifdef HAVE_CONFIG_H
+ #include "config.h"
+ #endif
++#ifdef HAVE_STRING_H
++#include <string.h>
++#endif
+ #include "ansidecl.h"
+ #include "libiberty.h"
+ #include "safe-ctype.h"
+@@ -73,11 +76,31 @@ dos_lbasename (const char *name)
+   return base;
+ }
+ 
++const char *
++amiga_lbasename (const char *name)
++{
++  const char *base = name;
++
++  /* Skip over a possible disk name.  */
++  if (HAS_AMIGOS_DRIVE_SPEC (name)) {
++    base = STRIP_DRIVE_SPEC (name);
++  };
++
++  /* Strip any directories */
++  for (; *name; name++)
++    if (IS_AMIGOS_DIR_SEPARATOR (*name))
++      base = name + 1;
++
++  return base;
++}
++
+ const char *
+ lbasename (const char *name)
+ {
+ #if defined (HAVE_DOS_BASED_FILE_SYSTEM)
+   return dos_lbasename (name);
++#elif defined (HAVE_AMIGA_BASED_FILE_SYSTEM)
++  return amiga_lbasename (name);
+ #else
+   return unix_lbasename (name);
+ #endif
+diff --git a/libiberty/make-temp-file.c b/libiberty/make-temp-file.c
+index a19ded1b..635863a9 100644
+--- a/libiberty/make-temp-file.c
++++ b/libiberty/make-temp-file.c
+@@ -157,6 +157,8 @@ choose_tmpdir (void)
+       tmpdir[len] = DIR_SEPARATOR;
+       tmpdir[len+1] = '\0';
+       memoized_tmpdir = tmpdir;
++#elif __amigaos4__
++    memoized_tmpdir = xstrdup ("T:");
+ #else /* defined(_WIN32) && !defined(__CYGWIN__) */
+       DWORD len;
+ 
+diff --git a/libiberty/pex-amigaos.c b/libiberty/pex-amigaos.c
+new file mode 100644
+index 00000000..5c99d2c2
+--- /dev/null
++++ b/libiberty/pex-amigaos.c
+@@ -0,0 +1,325 @@
++/* Utilities to execute a program in a subprocess (possibly linked by pipes
++   with other subprocesses), and wait for it.  Generic AMIGAOS specialization.
++   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2005
++   Free Software Foundation, Inc.
++
++This file is part of the libiberty library.
++Libiberty is free software; you can redistribute it and/or
++modify it under the terms of the GNU Library General Public
++License as published by the Free Software Foundation; either
++version 2 of the License, or (at your option) any later version.
++
++Libiberty is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++Library General Public License for more details.
++
++You should have received a copy of the GNU Library General Public
++License along with libiberty; see the file COPYING.LIB.  If not,
++write to the Free Software Foundation, Inc., 51 Franklin Street - Fifth Floor,
++Boston, MA 02110-1301, USA.  */
++
++#include "pex-common.h"
++
++#include <stdio.h>
++#include <errno.h>
++#ifdef NEED_DECLARATION_ERRNO
++extern int errno;
++#endif
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
++#include <string.h>
++#include <fcntl.h>
++#include <unistd.h>
++#include <sys/stat.h>
++#include <ctype.h>
++
++/* Use ECHILD if available, otherwise use EINVAL.  */
++#ifdef ECHILD
++#define PWAIT_ERROR ECHILD
++#else
++#define PWAIT_ERROR EINVAL
++#endif
++
++#if !defined(FD_CLOEXEC)
++#define FD_CLOEXEC 1
++#endif
++
++static int pex_amiga_open_read (struct pex_obj *, const char *, int);
++static int pex_amiga_open_write (struct pex_obj *, const char *, int, int);
++static pid_t pex_amiga_exec_child (struct pex_obj *, int, const char *,
++				 char * const *, char * const *,
++				 int, int, int, int,
++				 const char **, int *);
++static int pex_amiga_close (struct pex_obj *, int);
++static pid_t pex_amiga_wait (struct pex_obj *, pid_t, int *, struct pex_time *,
++			   int, const char **, int *);
++static FILE *pex_amiga_fdopenr (struct pex_obj *, int, int);
++static FILE *pex_amiga_fdopenw (struct pex_obj *, int, int);
++
++/* The list of functions we pass to the common routines.  */
++
++const struct pex_funcs funcs =
++{
++  pex_amiga_open_read,
++  pex_amiga_open_write,
++  pex_amiga_exec_child,
++  pex_amiga_close,
++  pex_amiga_wait,
++  NULL, /* pipe */
++  pex_amiga_fdopenr,
++  pex_amiga_fdopenw,
++  NULL, /* cleanup */
++};
++
++/* Return a newly initialized pex_obj structure.  */
++
++struct pex_obj *
++pex_init (int flags, const char *pname, const char *tempbase)
++{
++  /* AMIGAOS does not support pipes.  */
++  flags &= ~ PEX_USE_PIPES;
++  return pex_init_common (flags, pname, tempbase, &funcs);
++}
++
++/* Open a file for reading.  */
++
++static int
++pex_amiga_open_read (struct pex_obj *obj ATTRIBUTE_UNUSED, const char *name,
++		    int binary ATTRIBUTE_UNUSED)
++{
++  return open (name, O_RDONLY);
++}
++
++/* Open a file for writing.  */
++
++static int
++pex_amiga_open_write (struct pex_obj *obj ATTRIBUTE_UNUSED, const char *name,
++		     int binary ATTRIBUTE_UNUSED, int append)
++{
++  /* Note that we can't use O_EXCL here because gcc may have already
++     created the temporary file via make_temp_file.  */
++  return open (name, O_WRONLY | O_CREAT | (append ? O_APPEND : O_TRUNC), 0666);
++}
++
++/* Close a file.  */
++
++static int
++pex_amiga_close (struct pex_obj *obj ATTRIBUTE_UNUSED, int fd)
++{
++  return close (fd);
++}
++
++/* Execute a child.  */
++
++const unsigned char __shell_escape_character = '\\';
++
++static pid_t
++pex_amiga_exec_child (struct pex_obj *obj, int flags ATTRIBUTE_UNUSED, const char *executable ATTRIBUTE_UNUSED,
++		     char * const * argv, char * const * env ATTRIBUTE_UNUSED,
++                     int in ATTRIBUTE_UNUSED, int out ATTRIBUTE_UNUSED, int errdes ATTRIBUTE_UNUSED,
++		     int toclose ATTRIBUTE_UNUSED, const char **errmsg, int *err)
++{
++  int rc;
++  char *scmd,*s;
++  int i,j,c,len,arglen;
++  int need_quote;
++  int already_have_quote;
++  int escaped;
++  int *statuses;
++
++  len = 0;
++
++  for(i = 0 ; argv[i] != NULL ; i++)
++  {
++    arglen = strlen(argv[i]);
++
++    len += 1 + arglen;
++
++    need_quote = already_have_quote = 0;
++
++    /* Check if this parameter is already surrounded by double quotes.
++       What counts is that the first character is a double quote. We
++       hope that the last character is an unescaped double quote, but
++       don't check for it. */
++    if(argv[i][0] == '\"')
++    {
++      already_have_quote = 1;
++    }
++    else
++    {
++      /* Check if there's a blank space in the argument. If so, we will
++         need to add double quote characters. */
++      for (j = 0 ; j < arglen ; j++)
++      {
++        c = argv[i][j];
++
++        if (isspace(c))
++        {
++          need_quote = 1;
++          break;
++        }
++      }
++
++      /* Make room for the double quote characters that we will have to add. */
++      if(need_quote)
++        len += 2;
++    }
++
++    /* Check if there are " or * characters in the quoted string which
++       may have to be escaped. */
++    if (need_quote || already_have_quote)
++    {
++      for (j = 0 ; j < arglen ; j++)
++      {
++        c = argv[i][j];
++
++        /* We just might have to add an escape character in front of these two. */
++        if (c == '\"' || c == '*')
++	        len++;
++      }
++    }
++  }
++
++  s = scmd = (char *) xmalloc (len+1);
++
++  for(i = 0 ; argv[i] != NULL ; i++)
++  {
++    arglen = strlen(argv[i]);
++
++    need_quote = already_have_quote = 0;
++
++    if (argv[i][0] == '\"')
++    {
++      already_have_quote = 1;
++    }
++    else
++    {
++      for (j = 0 ; j < arglen ; j++)
++      {
++        c = argv[i][j];
++
++        if (isspace(c))
++        {
++          need_quote = 1;
++          break;
++        }
++      }
++    }
++
++    if(s != scmd)
++      (*s++) = ' ';
++
++    if(need_quote)
++      (*s++) = '\"';
++
++    escaped = 0;
++
++    for(j = 0 ; j < arglen ; j++)
++    {
++      c = argv[i][j];
++
++      /* If this is a " or * and the parameter is quoted, try to
++         add an escape character in front of it. */
++      if((c == '\"' || c == '*') && (need_quote || already_have_quote))
++	    {
++        /* Careful, don't escape the first double
++           quote character by mistake. */
++        if(!already_have_quote || j > 0)
++        {
++          /* Don't add an escape character here if the previous character
++             already was an escape character. */
++          if(!escaped)
++            (*s++) = '*';
++	      }
++      }
++
++      (*s++) = c;
++
++      /* Remember if the last character read was an escape character. */
++      if (escaped)
++        escaped = 0;
++      else
++        escaped = (c == __shell_escape_character && c != '*');
++    }
++
++    if(need_quote)
++      (*s++) = '\"';
++  }
++
++  (*s) = '\0';
++
++  rc = system (scmd);
++
++  free (scmd);
++
++  if (rc == -1)
++  {
++    *err = errno;
++    *errmsg = install_error_msg;
++    return -1;
++  }
++
++  /* Save the exit status for later.  When we are called, obj->count
++     is the number of children which have executed before this
++     one.  */
++  statuses = (int *) obj->sysdep;
++  statuses = XRESIZEVEC (int, statuses, obj->count + 1);
++  statuses[obj->count] = (rc << 8); /* Tuck the status away for pwait */
++  obj->sysdep = (void *) statuses;
++
++  return obj->count;
++}
++
++/* Create a pipe.  */
++/*
++static int
++pex_amiga_pipe (struct pex_obj *obj ATTRIBUTE_UNUSED, int *p,
++	       int binary ATTRIBUTE_UNUSED)
++{
++  return pipe (p);
++}
++*/
++
++/* Get a FILE pointer to read from a file descriptor.  */
++
++static FILE *
++pex_amiga_fdopenr (struct pex_obj *obj ATTRIBUTE_UNUSED, int fd,
++		  int binary ATTRIBUTE_UNUSED)
++{
++  return fdopen (fd, "r");
++}
++
++/* Get a FILE pointer to write to a file descriptor.  */
++
++static FILE *
++pex_amiga_fdopenw (struct pex_obj *obj ATTRIBUTE_UNUSED, int fd,
++		  int binary ATTRIBUTE_UNUSED)
++{
++  if (fcntl (fd, F_SETFD, FD_CLOEXEC) < 0)
++    return NULL;
++  return fdopen (fd, "w");
++}
++
++
++/* Wait for a child process to complete.  Actually the child process
++   has already completed, and we just need to return the exit
++   status.  */
++
++static pid_t
++pex_amiga_wait (struct pex_obj *obj, pid_t pid, int *status,
++		struct pex_time *time, int done ATTRIBUTE_UNUSED,
++		const char **errmsg ATTRIBUTE_UNUSED,
++		int *err ATTRIBUTE_UNUSED)
++{
++  int *statuses;
++
++  if (time != NULL)
++    memset (time, 0, sizeof (struct pex_time));
++
++  statuses = (int *) obj->sysdep;
++  *status = statuses[pid];
++
++  return 0;
++}
