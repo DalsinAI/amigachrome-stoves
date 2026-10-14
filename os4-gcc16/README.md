@@ -6,10 +6,9 @@ AmigaOS patches, on the machine that uses it. No Docker and no prebuilt
 compilers. On a Cradle machine it is the `os4` stove
 (`~/AmigaChrome/stoves/os4`), which builds the AC460's guest software.
 
-**Status: experimental.** First written 14 October 2026. binutils and the
-compiler are built and tested; the C libraries, libstdc++ and the smoke tests
-need the SDK, so the full stove is first built on the Cradle machine (see
-Results).
+**Status: experimental.** First written 14 October 2026, and first built on the
+Cradle machine the same day with every smoke test passing (see Results).
+Run-time tests on an AC460 come next.
 
 ## Where the patches come from
 
@@ -129,4 +128,6 @@ Run-time tests on an AmigaChrome AC460 (OS 4.1) come next.
 
 ## Results
 
-None yet: the first full build is on the Cradle machine.
+| Date | Machine | Recipe | Result |
+| --- | --- | --- | --- |
+| 14 Oct 2026 | The Cradle machine (Ubuntu, x86-64), SDK 54.25 from Hyperion | `cc1452c` | All nine steps. clib2 and clib4 built. Smoke tests: c-newlib, c-clib2, c-clib4, cxx-newlib, cxx-clib2, device and baserel all ok. |
