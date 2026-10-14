@@ -84,6 +84,10 @@ These hunks were adapted:
   build ever ran it.
 
 Known issues carried over from the GCC 15 patch (not porting mistakes):
+- Hyperion's SDK 54.25 has newlib start-up files for `-mbaserel` but no
+  base-relative `libc.a`, so `-mbaserel` with newlib stops at `cannot find
+  -lc`, as with adtools. clib2 builds a base-relative `libc.a`: use
+  `-mcrt=clib2 -mbaserel`.
 - The driver links no thread object by default, so a C++ program that uses
   libstdc++ needs `-athread=native` or `-athread=single`; without it the link
   stops at undefined `__gthread_*` symbols. adtools documents the same.

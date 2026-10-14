@@ -95,6 +95,7 @@ bzip2 curl git python3 patch lhasa gpgv`.
 PATH=~/AmigaChrome/stoves/os4/prefix/bin:$PATH
 ppc-amigaos-gcc -O2 -o hello hello.c                    # newlib
 ppc-amigaos-gcc -mcrt=clib2 -O2 -o hello hello.c        # runs on a bare OS 4.1
+ppc-amigaos-gcc -mcrt=clib2 -mbaserel -O2 -o hello hello.c   # base-relative data
 ppc-amigaos-g++ -athread=native -O2 -std=gnu++20 -o app app.cpp
 ppc-amigaos-gcc -O2 -nostartfiles -nostdlib -o my.device my_device.c -lgcc
 ```
@@ -120,7 +121,7 @@ big-endian PowerPC ELF executable that keeps its relocations:
 
 | Test | Covers |
 | --- | --- |
-| `hello.c` with newlib, clib2, clib4 and `-mbaserel` | C, an interface call (`IDOS->Printf`), the C library |
+| `hello.c` with newlib, clib2, clib4, and clib2 with `-mbaserel` | C, an interface call (`IDOS->Printf`), the C library |
 | `hello.cpp` with newlib and clib2 | C++, libstdc++, exceptions |
 | `device.c` | a device-style link: no start files, no C library, libgcc's 64-bit division |
 

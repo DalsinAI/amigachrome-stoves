@@ -291,7 +291,8 @@ check c-clib2 "$T/hello-clib2" "$CC" -mcrt=clib2 -O2 -o "$T/hello-clib2" "$SMOKE
 check cxx-newlib "$T/hello-cxx" "$CXX" -athread=native -O2 -o "$T/hello-cxx" "$SMOKE/hello.cpp"
 check cxx-clib2 "$T/hello-cxx-clib2" "$CXX" -mcrt=clib2 -athread=native -O2 -o "$T/hello-cxx-clib2" "$SMOKE/hello.cpp"
 check device "$T/device" "$CC" -O2 -fno-builtin -nostartfiles -nostdlib -o "$T/device" "$SMOKE/device.c" -lgcc
-check baserel "$T/hello-baserel" "$CC" -mbaserel -O2 -o "$T/hello-baserel" "$SMOKE/hello.c"
+# The SDK's newlib has no base-relative libc.a, so -mbaserel is tested with clib2, which builds one.
+check baserel "$T/hello-baserel" "$CC" -mcrt=clib2 -mbaserel -O2 -o "$T/hello-baserel" "$SMOKE/hello.c"
 printf "$results" | tee "$LOGS/smoke-tests.txt"
 [ "$failed" = 0 ] || { echo "smoke tests failed" >&2; exit 6; }
 mark test
