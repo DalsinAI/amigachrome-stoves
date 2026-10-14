@@ -6,8 +6,10 @@ AmigaOS patches, on the machine that uses it. No Docker and no prebuilt
 compilers. On a Cradle machine it is the `os4` stove
 (`~/AmigaChrome/stoves/os4`), which builds the AC460's guest software.
 
-**Status: experimental.** First written 14 October 2026. binutils is built and
-tested; the full stove is first built on the Cradle machine (see Results).
+**Status: experimental.** First written 14 October 2026. binutils and the
+compiler are built and tested; the C libraries, libstdc++ and the smoke tests
+need the SDK, so the full stove is first built on the Cradle machine (see
+Results).
 
 ## Where the patches come from
 
@@ -37,7 +39,7 @@ it carries over.
 | `-mcrt=` | C library | Built from | On the Amiga |
 | --- | --- | --- | --- |
 | `newlib` (the default) | newlib | Hyperion's SDK | `newlib.library`, which every OS 4.1 has |
-| `clib2` | clib2 ([sodero/clib2](https://github.com/sodero/clib2) `1a42c693`) | source, here | nothing: it links statically |
+| `clib2` | clib2 ([sodero/clib2](https://github.com/sodero/clib2) `1a42c693`); `clib2-ts` is its thread-safe build | source, here | nothing: it links statically |
 | `clib4` | clib4 ([AmigaLabs/clib4](https://github.com/AmigaLabs/clib4) `30e487d2`) | source, here | `clib4.library` in `LIBS:`, built here too (`prefix/ppc-amigaos/SDK/clib4/clib4.library`) |
 
 ## The SDK
@@ -93,9 +95,14 @@ bzip2 curl git python3 patch lhasa gpgv`.
 PATH=~/AmigaChrome/stoves/os4/prefix/bin:$PATH
 ppc-amigaos-gcc -O2 -o hello hello.c                    # newlib
 ppc-amigaos-gcc -mcrt=clib2 -O2 -o hello hello.c        # runs on a bare OS 4.1
-ppc-amigaos-g++ -O2 -std=gnu++20 -o app app.cpp
+ppc-amigaos-g++ -athread=native -O2 -std=gnu++20 -o app app.cpp
 ppc-amigaos-gcc -O2 -nostartfiles -nostdlib -o my.device my_device.c -lgcc
 ```
+
+C++ programs that use libstdc++ link with `-athread=native` (or
+`-athread=single`), as with adtools: it adds the thread functions libstdc++
+and libgcc's unwinder call. Without it the link stops at undefined
+`__gthread_*` symbols.
 
 Programs link with `-q`, so they keep their relocations: OS 4.1's ELF loader
 needs them. Use `-D__USE_INLINE__` for the classic `Printf(...)` call style

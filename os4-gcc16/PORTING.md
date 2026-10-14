@@ -84,6 +84,11 @@ These hunks were adapted:
   build ever ran it.
 
 Known issues carried over from the GCC 15 patch (not porting mistakes):
+- The driver links no thread object by default, so a C++ program that uses
+  libstdc++ needs `-athread=native` or `-athread=single`; without it the link
+  stops at undefined `__gthread_*` symbols. adtools documents the same.
+- `-mcrt=clib2-ts` (clib2's thread-safe build) has no multilib, so C++ with it
+  links the newlib libstdc++.
 - `-athread=pthread` names `gthr-amigaos-pthread.o`, which libgcc never builds.
 - `-flto` on code that uses `va_getlinearva` fails at the link-time compile.
 - The multilibs are newlib and clib2 only; `-mcrt=clib4` links the newlib

@@ -1,6 +1,7 @@
 /* os4-gcc16 smoke test: built like a device (no start files, no C library,
  * only libgcc), calling exec through the interface it is handed. */
 #include <exec/exec.h>
+#include <dos/dos.h>
 #include <proto/exec.h>
 
 int32 _start(void) { return RETURN_FAIL; }

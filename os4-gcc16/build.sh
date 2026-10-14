@@ -20,7 +20,9 @@
 #   --verify-only  fetch nothing; check the sources in WORK/ports and stop
 #
 # Each step leaves a stamp in WORK/stamps/<recipe hash>, so running the script
-# again carries on from the step that failed. A changed recipe starts over.
+# again carries on from the step that failed. A changed recipe starts over; the
+# smoke tests and stove.json (steps 8 and 9) are not part of the hash, so a fix
+# to them reruns only them.
 #
 # Host needs: git curl xz bzip2 make gcc g++ bison flex gawk m4 perl python3
 # texinfo patch lhasa (for lha), and gpgv to check the GNU signatures.
@@ -58,7 +60,8 @@ SDK_VERSION=54.25
 SDK_URL='https://www.hyperion-entertainment.biz/index.php?option=com_registration&amp;view=download&amp;format=raw&amp;file=137'
 
 PORTS="$WORK/ports"; SRC="$WORK/src"; BUILD="$WORK/build"; LOGS="$WORK/logs"
-RECIPE_HASH="$(cat "$HERE/build.sh" "$HERE/sources.lock" "$HERE"/patches/*.patch | sha256sum | cut -c1-16)"
+# The hash covers build.sh up to the "# 8. Smoke tests" line, which must stay.
+RECIPE_HASH="$( { sed '/^# 8\. Smoke tests/,$d' "$HERE/build.sh"; cat "$HERE/sources.lock" "$HERE"/patches/*.patch; } | sha256sum | cut -c1-16)"
 STAMPS="$WORK/stamps/$RECIPE_HASH"
 mkdir -p "$PORTS" "$LOGS"
 
@@ -222,7 +225,7 @@ if ! done_step clib2; then
         CC="$XGCC -Wno-error=int-conversion -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration" \
         AR="$PREFIX/bin/$TARGET-ar -q" RANLIB="$PREFIX/bin/$TARGET-ranlib"
     rm -rf "$SDK/clib2" && mkdir -p "$SDK/clib2"
-    cp -Rp "$BUILD/clib2/library/include" "$BUILD/clib2/library/lib" "$SDK/clib2/"
+    cp -Rp "$BUILD/clib2/library/include" "$BUILD/clib2/library/lib" "$BUILD/clib2/library/lib.threadsafe" "$SDK/clib2/"
     cp "$BUILD/clib2/LICENSE" "$SDK/clib2/"
     mark clib2
 fi
@@ -273,7 +276,7 @@ is_ppc_exe() {   # a big-endian 32-bit PowerPC ELF executable
 results=""; failed=0
 check() {   # check <name> <output> <compile command...>: a program that keeps its relocations
     local name="$1" out="$2"; shift 2
-    if "$@" > "$T/$name.log" 2>&1 && is_ppc_exe "$out" && { [ "$name" = device ] || "$READELF" -S "$out" | grep -q '\.rela\.text'; }; then
+    if "$@" > "$T/$name.log" 2>&1 && is_ppc_exe "$out" && { [ "$name" = device ] || "$READELF" -S "$out" | grep '\.rela\.text' >/dev/null; }; then
         results="$results$name: ok\n"
     else
         results="$results$name: FAILED (see $T/$name.log)\n"; failed=1
@@ -283,8 +286,8 @@ SMOKE="$HERE/tests/smoke"
 check c-newlib "$T/hello-newlib" "$CC" -O2 -o "$T/hello-newlib" "$SMOKE/hello.c"
 check c-clib2 "$T/hello-clib2" "$CC" -mcrt=clib2 -O2 -o "$T/hello-clib2" "$SMOKE/hello.c"
 [ "$(cat "$STOVE/.clib4" 2>/dev/null)" = built ] && check c-clib4 "$T/hello-clib4" "$CC" -mcrt=clib4 -O2 -o "$T/hello-clib4" "$SMOKE/hello.c"
-check cxx-newlib "$T/hello-cxx" "$CXX" -O2 -o "$T/hello-cxx" "$SMOKE/hello.cpp"
-check cxx-clib2 "$T/hello-cxx-clib2" "$CXX" -mcrt=clib2 -O2 -o "$T/hello-cxx-clib2" "$SMOKE/hello.cpp"
+check cxx-newlib "$T/hello-cxx" "$CXX" -athread=native -O2 -o "$T/hello-cxx" "$SMOKE/hello.cpp"
+check cxx-clib2 "$T/hello-cxx-clib2" "$CXX" -mcrt=clib2 -athread=native -O2 -o "$T/hello-cxx-clib2" "$SMOKE/hello.cpp"
 check device "$T/device" "$CC" -O2 -fno-builtin -nostartfiles -nostdlib -o "$T/device" "$SMOKE/device.c" -lgcc
 check baserel "$T/hello-baserel" "$CC" -mbaserel -O2 -o "$T/hello-baserel" "$SMOKE/hello.c"
 printf "$results" | tee "$LOGS/smoke-tests.txt"
