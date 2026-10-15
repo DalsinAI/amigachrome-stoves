@@ -19,9 +19,9 @@ Copyright (c) 2026 Dalsin Limited, released under the MIT licence (`LICENSE`).
 
 ## Fetched at build time, not committed
 
-`aros68k-gcc16/build.sh` downloads these, each checked against the SHA-256 in
-`aros68k-gcc16/sources.lock` (GCC and binutils also against their GNU
-signatures). Every release that carries binaries also carries the exact
+`aros68k-gcc16/build.sh` and `os4-gcc16/build.sh` download these, each checked
+against the SHA-256 in their `sources.lock` (GCC and binutils also against
+their GNU signatures), or at a pinned git commit. Every release that carries binaries also carries the exact
 sources and patches they were built from.
 
 | Component | Pinned | Authors | Licence |
@@ -33,9 +33,22 @@ sources and patches they were built from.
 | GNU MPC | 1.4.1 | The MPC developers | LGPL |
 | isl | 0.27 | The isl developers | MIT |
 | AROS, with its crosstools patches for m68k-aros and its headers and libraries | commit `c8860e674d` | The AROS Development Team | AROS Public License |
+| clib2, a C library for AmigaOS 4 (os4-gcc16) | sodero/clib2 commit `1a42c693` | Olaf Barthel and the clib2 contributors | BSD 3-clause, with parts from musl (MIT) |
+| clib4, a C library for AmigaOS 4 (os4-gcc16) | AmigaLabs/clib4 commit `30e487d2` | The clib4 developers | BSD 3-clause, with some LGPL and GPL files and OpenLibm |
+
+## Our patches build on
+
+`os4-gcc16/patches/` are our ports of the AmigaOS 4 support in the adtools
+project to GCC 16.2.0 and binutils 2.47. That support is the work of Sebastian Bauer, Ola Söder,
+Josef Wegner and the other [adtools](https://github.com/sba1/adtools)
+contributors, carried on to GCC 15 and binutils 2.40 by Georgios Sokianos and
+[AmigaLabs](https://github.com/AmigaLabs/adtools). The
+patches are GPL, like GCC and binutils.
 
 The AmigaOS NDK is not included and not fetched: it is not ours to
-redistribute.
+redistribute. Hyperion's AmigaOS 4.1 SDK is not included either: os4-gcc16
+downloads it on the machine that builds the stove, and it never leaves that
+machine.
 
 Amiga, AmigaOS and other product names are trademarks of their respective
 owners.
