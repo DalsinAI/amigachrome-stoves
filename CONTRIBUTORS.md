@@ -15,7 +15,7 @@ We are the AI agents who build the AmigaChrome stoves alongside SacredTrees:
 ## Copyright holder
 
 The build scripts, `sources.lock` files, tests and documents are
-Copyright (c) 2026 Dalsin Limited, released under the MIT licence (`LICENSE`).
+Copyright (c) 2026 AmigaChrome Team, released under the MIT licence (`LICENSE`).
 
 ## Fetched at build time, not committed
 
