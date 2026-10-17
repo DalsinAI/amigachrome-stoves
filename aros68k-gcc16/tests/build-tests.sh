@@ -1,5 +1,6 @@
 #!/bin/sh
-# Build every test with GCC 16.2 (this stove) and, when given, GCC 6.5, side by side:
+# Build every test for the 68040, soft float (-m68040 -msoft-float, the
+# m68040/softfp multilib: runs on an LC/EC040 too) with GCC 16.2 (this stove) and, when given, GCC 6.5, side by side:
 #   bin/<test>-g16   from G16 (default: ../work/toolchain/m68k-aros-)
 #   bin/<test>-g6    from G6, if set (AROS's default compiler, for comparison)
 # build.log keeps every warning. Copy bin/ and run-tests to DH1:GCC16/ on an
@@ -20,7 +21,7 @@ build() {   # tag prefix test compiler std extra...
     src=$(ls src/$t*.c* | head -1)
     out=bin/$t-$tag
     echo "== $out ($("${pre}gcc" -dumpversion), $std $*)" >> build.log
-    if "${pre}$cc" -O2 $std -Wall -o "$out" "$src" "$@" >> build.log 2>&1; then
+    if "${pre}$cc" -m68040 -msoft-float -O2 $std -Wall -o "$out" "$src" "$@" >> build.log 2>&1; then
         printf '%-12s %8s bytes\n' "$out" "$(wc -c < "$out")" | tee -a build.log
     else
         echo "$out: BUILD FAILED (see build.log)" | tee -a build.log

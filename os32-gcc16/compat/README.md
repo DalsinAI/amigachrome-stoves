@@ -8,7 +8,6 @@ long double maths through double (`ldbl/`). `fenv.h` and `uchar.h` are header-on
 
     sh build.sh [OUT_DIR]        STOVE defaults to ~/AmigaChrome/stoves/os32-gcc16
 
-`build.sh` makes three libraries: `libos32compat.a` (absolute), `libb/libos32compat.a` (`-fbaserel`) and `libb32/libos32compat.a` (`-fbaserel32`). Base-relative programs need their own build: the absolute one uses a4 as a scratch register in the malloc wrappers, and a `-fbaserel32` program linked with it hangs. The absolute one reproduces the stove's installed `compat/libos32compat.a` object for object
-(the same disassembly for all 64 members, checked against the stove installed on daletop).
+`build.sh` makes six libraries, all for the 68040: soft float (the default for all our builds) as `libos32compat.a` (absolute), `libb/libos32compat.a` (`-fbaserel`) and `libb32/libos32compat.a` (`-fbaserel32`), and the same three with the FPU (`-m68881`) in `m881/`, `libb/m881/` and `libb32/m881/`. The maths parts return floating point values, so a program must link the one that matches its own float ABI: a hard-float program adds `/m881` to its `-L`. Soft-float objects are compiled with `-specs=build/m68k-soft-m68040.specs` (see the top README). Base-relative programs need their own build: the absolute one uses a4 as a scratch register in the malloc wrappers, and a `-fbaserel32` program linked with it hangs. Before 17 October 2026 the absolute one reproduced the stove's installed `compat/libos32compat.a` (`-m68020 -m68881`) object for object; the installed stoves still have that one.
 Link it after libstdc++: `-lstdc++ -L<stove>/compat -los32compat`, with
 `-Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=free` for the aligned allocator.

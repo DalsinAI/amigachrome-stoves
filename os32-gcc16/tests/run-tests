@@ -10,165 +10,165 @@ If NOT EXISTS results
 EndIf
 Echo "os32-gcc16 tests" >results/summary.txt
 Date >>results/summary.txt
-If EXISTS bin/t1-020
-  Echo "t1-020 ..."
-  bin/t1-020 >results/t1-020.txt
-  Echo "t1-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t1-040
+  Echo "t1-040 ..."
+  bin/t1-040 >results/t1-040.txt
+  Echo "t1-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t2-020
-  Echo "t2-020 ..."
-  bin/t2-020 >results/t2-020.txt
-  Echo "t2-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t2-040
+  Echo "t2-040 ..."
+  bin/t2-040 >results/t2-040.txt
+  Echo "t2-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t3a-020
-  Echo "t3a-020 ..."
-  bin/t3a-020 >results/t3a-020.txt
-  Echo "t3a-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t3a-040
+  Echo "t3a-040 ..."
+  bin/t3a-040 >results/t3a-040.txt
+  Echo "t3a-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t3b-020
-  Echo "t3b-020 ..."
-  bin/t3b-020 >results/t3b-020.txt
-  Echo "t3b-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t3b-040
+  Echo "t3b-040 ..."
+  bin/t3b-040 >results/t3b-040.txt
+  Echo "t3b-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t3c-020
-  Echo "t3c-020 ..."
-  bin/t3c-020 >results/t3c-020.txt
-  Echo "t3c-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t3c-040
+  Echo "t3c-040 ..."
+  bin/t3c-040 >results/t3c-040.txt
+  Echo "t3c-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t3d-020
-  Echo "t3d-020 ..."
-  bin/t3d-020 >results/t3d-020.txt
-  Echo "t3d-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t3d-040
+  Echo "t3d-040 ..."
+  bin/t3d-040 >results/t3d-040.txt
+  Echo "t3d-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t3e-020
-  Echo "t3e-020 ..."
-  bin/t3e-020 >results/t3e-020.txt
-  Echo "t3e-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t3e-040
+  Echo "t3e-040 ..."
+  bin/t3e-040 >results/t3e-040.txt
+  Echo "t3e-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t3f-020
-  Echo "t3f-020 ..."
-  bin/t3f-020 >results/t3f-020.txt
-  Echo "t3f-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t3f-040
+  Echo "t3f-040 ..."
+  bin/t3f-040 >results/t3f-040.txt
+  Echo "t3f-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t4-020
-  Echo "t4-020 ..."
-  bin/t4-020 >results/t4-020.txt
-  Echo "t4-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t4-040
+  Echo "t4-040 ..."
+  bin/t4-040 >results/t4-040.txt
+  Echo "t4-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t5-020
-  Echo "t5-020 ..."
-  bin/t5-020 >results/t5-020.txt
-  Echo "t5-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t5-040
+  Echo "t5-040 ..."
+  bin/t5-040 >results/t5-040.txt
+  Echo "t5-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t6-040
-  Echo "t6-040 ..."
-  bin/t6-040 >results/t6-040.txt
-  Echo "t6-040 rc=$RC" >>results/summary.txt
+If EXISTS bin/t6-040f
+  Echo "t6-040f ..."
+  bin/t6-040f >results/t6-040f.txt
+  Echo "t6-040f rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t7-020
-  Echo "t7-020 ..."
-  bin/t7-020 >results/t7-020.txt
-  Echo "t7-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t7-040f
+  Echo "t7-040f ..."
+  bin/t7-040f >results/t7-040f.txt
+  Echo "t7-040f rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t7-060
-  Echo "t7-060 ..."
-  bin/t7-060 >results/t7-060.txt
-  Echo "t7-060 rc=$RC" >>results/summary.txt
+If EXISTS bin/t7-040
+  Echo "t7-040 ..."
+  bin/t7-040 >results/t7-040.txt
+  Echo "t7-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t8-020
-  Echo "t8-020 ..."
-  bin/t8-020 >results/t8-020.txt
-  Echo "t8-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t8-040f
+  Echo "t8-040f ..."
+  bin/t8-040f >results/t8-040f.txt
+  Echo "t8-040f rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t8-060
-  Echo "t8-060 ..."
-  bin/t8-060 >results/t8-060.txt
-  Echo "t8-060 rc=$RC" >>results/summary.txt
+If EXISTS bin/t8-040
+  Echo "t8-040 ..."
+  bin/t8-040 >results/t8-040.txt
+  Echo "t8-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t9-020
-  Echo "t9-020 ..."
-  bin/t9-020 >results/t9-020.txt
-  Echo "t9-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t9-040f
+  Echo "t9-040f ..."
+  bin/t9-040f >results/t9-040f.txt
+  Echo "t9-040f rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t9-060
-  Echo "t9-060 ..."
-  bin/t9-060 >results/t9-060.txt
-  Echo "t9-060 rc=$RC" >>results/summary.txt
+If EXISTS bin/t9-040
+  Echo "t9-040 ..."
+  bin/t9-040 >results/t9-040.txt
+  Echo "t9-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t10-020
-  Echo "t10-020 ..."
-  bin/t10-020 >results/t10-020.txt
-  Echo "t10-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t10-040f
+  Echo "t10-040f ..."
+  bin/t10-040f >results/t10-040f.txt
+  Echo "t10-040f rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t10-060
-  Echo "t10-060 ..."
-  bin/t10-060 >results/t10-060.txt
-  Echo "t10-060 rc=$RC" >>results/summary.txt
+If EXISTS bin/t10-040
+  Echo "t10-040 ..."
+  bin/t10-040 >results/t10-040.txt
+  Echo "t10-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t11-020
-  Echo "t11-020 ..."
-  bin/t11-020 >results/t11-020.txt
-  Echo "t11-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t11-040
+  Echo "t11-040 ..."
+  bin/t11-040 >results/t11-040.txt
+  Echo "t11-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t12-020
-  Echo "t12-020 ..."
-  bin/t12-020 >results/t12-020.txt
-  Echo "t12-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t12-040
+  Echo "t12-040 ..."
+  bin/t12-040 >results/t12-040.txt
+  Echo "t12-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t13-020
-  Echo "t13-020 ..."
-  bin/t13-020 >results/t13-020.txt
-  Echo "t13-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t13-040
+  Echo "t13-040 ..."
+  bin/t13-040 >results/t13-040.txt
+  Echo "t13-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t14-020
-  Echo "t14-020 ..."
-  bin/t14-020 >results/t14-020.txt
-  Echo "t14-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t14-040
+  Echo "t14-040 ..."
+  bin/t14-040 >results/t14-040.txt
+  Echo "t14-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t15-020
-  Echo "t15-020 ..."
-  bin/t15-020 >results/t15-020.txt
-  Echo "t15-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t15-040
+  Echo "t15-040 ..."
+  bin/t15-040 >results/t15-040.txt
+  Echo "t15-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t16-020
-  Echo "t16-020 ..."
-  bin/t16-020 >results/t16-020.txt
-  Echo "t16-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t16-040
+  Echo "t16-040 ..."
+  bin/t16-040 >results/t16-040.txt
+  Echo "t16-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t17-020
-  Echo "t17-020 ..."
-  bin/t17-020 >results/t17-020.txt
-  Echo "t17-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t17-040
+  Echo "t17-040 ..."
+  bin/t17-040 >results/t17-040.txt
+  Echo "t17-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t19-020
-  Echo "t19-020 ..."
-  bin/t19-020 >results/t19-020.txt
-  Echo "t19-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t19-040
+  Echo "t19-040 ..."
+  bin/t19-040 >results/t19-040.txt
+  Echo "t19-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t12c-020
-  Echo "t12c-020 ..."
-  bin/t12c-020 >results/t12c-020.txt
-  Echo "t12c-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t12c-040
+  Echo "t12c-040 ..."
+  bin/t12c-040 >results/t12c-040.txt
+  Echo "t12c-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t13c-020
-  Echo "t13c-020 ..."
-  bin/t13c-020 >results/t13c-020.txt
-  Echo "t13c-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t13c-040
+  Echo "t13c-040 ..."
+  bin/t13c-040 >results/t13c-040.txt
+  Echo "t13c-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t19c-020
-  Echo "t19c-020 ..."
-  bin/t19c-020 >results/t19c-020.txt
-  Echo "t19c-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t19c-040
+  Echo "t19c-040 ..."
+  bin/t19c-040 >results/t19c-040.txt
+  Echo "t19c-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t3-020
-  Echo "t3-020 ..."
-  bin/t3-020 >results/t3-020.txt
-  Echo "t3-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t3-040
+  Echo "t3-040 ..."
+  bin/t3-040 >results/t3-040.txt
+  Echo "t3-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t18-020
-  Echo "t18-020 ..."
-  bin/t18-020 >results/t18-020.txt
-  Echo "t18-020 rc=$RC" >>results/summary.txt
+If EXISTS bin/t18-040
+  Echo "t18-040 ..."
+  bin/t18-040 >results/t18-040.txt
+  Echo "t18-040 rc=$RC" >>results/summary.txt
 EndIf
 Echo "done" >>results/summary.txt
 Type results/summary.txt
