@@ -51,11 +51,18 @@ This folder adds broader qualification tests, which need no NDK:
 
 ## The tests
 
-All builds are for the 68040 only (17 October 2026). `040` is `-m68040 -m68881`
-(hard float); `040s` is `-m68040` alone, which with this stove is still soft
-float (the `libm020` multilib, calls such as `___muldf3`). `compat/` builds
-`libos32compat` at `-m68040 -m68881`; its maths parts return doubles in `fp0`,
-so soft-float programs must not call them.
+All builds are for the 68040 only, soft float by default (17 October 2026).
+`040` is `-m68040` with `-specs=build/m68k-soft-m68040.specs` (soft float,
+`libm020`, maths through the mathieee libraries; see the top README for why the
+specs file is needed); `040f` is `-m68040 -m68881` (hard float, as the browser
+stack builds). `compat/` builds `libos32compat` both ways (soft by default,
+hard in `m881/`): its maths parts return floating point values, so a program
+must link the one that matches its float ABI. The C++ tests are soft float and
+need a soft `libos32compat`: build it with `compat/build.sh DIR` and pass
+`COMPAT_DIR=DIR` (an installed stove has only the old hard-float one).
+
+To give the stove the soft-float link as its default, run
+`../build/install-os32-specs.sh <stove>` after it is built (see the top README).
 
 The stove's own default CPU is still the 68000: bebbo's GCC is configured
 without `--with-cpu`, and a build with no CPU flag gets `-mcpu=68000` and the
@@ -71,11 +78,11 @@ every build passes `-m68040`.
 | t3 | `std::thread`, `mutex`, `condition_variable`, `thread_local`, `call_once`, `async` | 040 |
 | t4 | 64-bit `atomic`, `atomic_ref`, `compare_exchange`, `atomic<double>` | 040 |
 | t5 | a 3,000-case `switch` (`-mlong-jump-table-offsets`) | 040 |
-| t6 | the FPCR clash (as openamigagcc 0003 fixed it) | 040 + 68881 |
-| t7 | 64-bit arithmetic: stack arguments, spills, shifts, multiplies, divides, varargs, structs | 040, 040s |
-| t8 | BearSSL as OpenTLS compiles it (i15, ctmul32, m15 curves), output equal to `expected/` | 040, 040s |
-| t9 | OpenCrypto (SHA-2, X25519, Ed25519, ChaCha20-Poly1305, AES, RSA, ECDSA, sntrup761), output equal to `expected/` | 040, 040s |
-| t10 | the loop shift and an overlapping backward copy | 040, 040s |
+| t6 | the FPCR clash (as openamigagcc 0003 fixed it) | 040f |
+| t7 | 64-bit arithmetic: stack arguments, spills, shifts, multiplies, divides, varargs, structs | 040, 040f |
+| t8 | BearSSL as OpenTLS compiles it (i15, ctmul32, m15 curves), output equal to `expected/` | 040, 040f |
+| t9 | OpenCrypto (SHA-2, X25519, Ed25519, ChaCha20-Poly1305, AES, RSA, ECDSA, sntrup761), output equal to `expected/` | 040, 040f |
+| t10 | the loop shift and an overlapping backward copy | 040, 040f |
 | t11 | exceptions thrown and caught in 8 threads; carried out of `async`, `promise`, `packaged_task` and an `exception_ptr` | 040 |
 | t12 | `thread_local` objects with constructors and destructors in 80 threads: destroyed by the time `join()` returns, counts equal | 040 |
 | t13 | 50, then 100 threads alive at once (past libpthread's 22- and 94-slot table sizes), each with `thread_local` data | 040 |

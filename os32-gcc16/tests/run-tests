@@ -60,50 +60,50 @@ If EXISTS bin/t5-040
   bin/t5-040 >results/t5-040.txt
   Echo "t5-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t6-040
-  Echo "t6-040 ..."
-  bin/t6-040 >results/t6-040.txt
-  Echo "t6-040 rc=$RC" >>results/summary.txt
+If EXISTS bin/t6-040f
+  Echo "t6-040f ..."
+  bin/t6-040f >results/t6-040f.txt
+  Echo "t6-040f rc=$RC" >>results/summary.txt
+EndIf
+If EXISTS bin/t7-040f
+  Echo "t7-040f ..."
+  bin/t7-040f >results/t7-040f.txt
+  Echo "t7-040f rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t7-040
   Echo "t7-040 ..."
   bin/t7-040 >results/t7-040.txt
   Echo "t7-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t7-040s
-  Echo "t7-040s ..."
-  bin/t7-040s >results/t7-040s.txt
-  Echo "t7-040s rc=$RC" >>results/summary.txt
+If EXISTS bin/t8-040f
+  Echo "t8-040f ..."
+  bin/t8-040f >results/t8-040f.txt
+  Echo "t8-040f rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t8-040
   Echo "t8-040 ..."
   bin/t8-040 >results/t8-040.txt
   Echo "t8-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t8-040s
-  Echo "t8-040s ..."
-  bin/t8-040s >results/t8-040s.txt
-  Echo "t8-040s rc=$RC" >>results/summary.txt
+If EXISTS bin/t9-040f
+  Echo "t9-040f ..."
+  bin/t9-040f >results/t9-040f.txt
+  Echo "t9-040f rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t9-040
   Echo "t9-040 ..."
   bin/t9-040 >results/t9-040.txt
   Echo "t9-040 rc=$RC" >>results/summary.txt
 EndIf
-If EXISTS bin/t9-040s
-  Echo "t9-040s ..."
-  bin/t9-040s >results/t9-040s.txt
-  Echo "t9-040s rc=$RC" >>results/summary.txt
+If EXISTS bin/t10-040f
+  Echo "t10-040f ..."
+  bin/t10-040f >results/t10-040f.txt
+  Echo "t10-040f rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t10-040
   Echo "t10-040 ..."
   bin/t10-040 >results/t10-040.txt
   Echo "t10-040 rc=$RC" >>results/summary.txt
-EndIf
-If EXISTS bin/t10-040s
-  Echo "t10-040s ..."
-  bin/t10-040s >results/t10-040s.txt
-  Echo "t10-040s rc=$RC" >>results/summary.txt
 EndIf
 If EXISTS bin/t11-040
   Echo "t11-040 ..."

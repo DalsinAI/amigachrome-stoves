@@ -19,10 +19,12 @@ threads and the AROS API pass; C++ exceptions do not yet (see Findings).
 - All our builds are for the 68040 only. GCC itself is configured for the
   68000 (as AROS 68k's is), so `build.sh`'s `specs` file makes `-mcpu=68040`
   the default (17 Oct 2026): a build that names no CPU, or asks for the 68000,
-  gets the 68040 and the `m68040` multilib. On AROS, `-m68040` is hard float
-  (FPU code, `__HAVE_68881__`); `-msoft-float` picks the `m68040/softfp`
-  libraries. Making it the compiler's own default would take a rebuild with
-  `--with-cpu=68040`.
+  gets the 68040. A 68040 build is soft float (the `m68040/softfp` libraries)
+  unless it asks for `-m68881` or `-mhard-float`, so one program runs on a full
+  68040 and on an LC/EC040. GCC alone makes `-m68040` hard float; the specs
+  file adds `-msoft-float`, and a stove without that file needs
+  `-m68040 -msoft-float` on the command line. Making the 68040 the compiler's
+  own default would take a rebuild with `--with-cpu=68040`.
 
 ## Build it
 
@@ -76,7 +78,7 @@ A build can still pass `-fdelete-null-pointer-checks`. A stove built before
 
 ```
 *self_spec:
-%{mcpu=68000:%<mcpu=68000 -mcpu=68040}
+%{mcpu=68000:%<mcpu=68000 -mcpu=68040} %{mcpu=68000|mcpu=68040:%{!m68881:%{!mhard-float:-msoft-float}}}
 
 *cc1:
 + -fno-delete-null-pointer-checks
@@ -87,13 +89,13 @@ A build can still pass `-fdelete-null-pointer-checks`. A stove built before
 
 ## Tests
 
-`tests/` holds seven programs, built for the 68040 (`-m68040`) by this stove
+`tests/` holds seven programs, built for the 68040 with soft float (`-m68040 -msoft-float`) by this stove
 and, for comparison, by AROS's GCC 6.5:
 
 | Test | Covers |
 | --- | --- |
 | t1 | the C library: formatting, strings, sorting, memory |
-| t2 | 64-bit integers and floating point (hard float on the 68040) |
+| t2 | 64-bit integers and floating point (soft float) |
 | t3 | C++: classes, containers, lambdas; C++17 and C++20 when the compiler has them |
 | t4 | exceptions: deep unwinding, destructors, rethrow, `exception_ptr` |
 | t5 | threads: pthreads, `std::thread`, mutex, condition variable, atomics |
