@@ -4,10 +4,10 @@
 # instance (e.g. DH1:GCC16/), Execute run-tests there, copy results/ back and
 # run ./check-results.sh. OPENTLS points at an openamigatls checkout (t8, t9).
 #
-# Each test is built for the CPUs it is about:
-#   020   -m68020 -m68881   the stove's normal target (OpenBrowser's flags)
-#   060   -m68060           no FPU: OpenTLS's and OpenPuTTY's CPU=060 builds
-#   040   -m68040 -m68881   the GCC 16 FPCR clash (t6)
+# All builds are for the 68040 only. Each test is built for:
+#   040   -m68040 -m68881   with the FPU (hard float)
+#   040s  -m68040           no -m68881: soft float (libm020 multilib, calls
+#                           like ___muldf3), as a plain -m68040 build gets
 set -u
 cd "$(dirname "$0")"
 STOVE=${STOVE:-"$HOME/AmigaChrome/stoves/os32-gcc16"}
@@ -35,26 +35,26 @@ run() { echo "== $*" >> build.log; "$@" >> build.log 2>&1; }
 echo "stove: $("${P}gcc" --version | head -1)" | tee -a build.log
 
 # t1: exceptions through a static library and a C function
-F="-m68020 -m68881 $COMMON -std=gnu++23"
+F="-m68040 -m68881 $COMMON -std=gnu++23"
 if run "${P}g++" $F -c src/t1_except_b.cpp -o obj/t1b.o && run "${P}ar" rcs obj/libt1.a obj/t1b.o &&
-   run "${P}gcc" -m68020 -m68881 $COMMON -fexceptions -c src/t1_except_c.c -o obj/t1c.o &&
-   run "${P}g++" $F -o bin/t1-020 src/t1_except_a.cpp obj/t1c.o -Lobj -lt1 $CXXLIBS; then ok bin/t1-020; else bad bin/t1-020; fi
+   run "${P}gcc" -m68040 -m68881 $COMMON -fexceptions -c src/t1_except_c.c -o obj/t1c.o &&
+   run "${P}g++" $F -o bin/t1-040 src/t1_except_a.cpp obj/t1c.o -Lobj -lt1 $CXXLIBS; then ok bin/t1-040; else bad bin/t1-040; fi
 # t2..t4: RTTI, threads, atomics
-run "${P}g++" $F -o bin/t2-020 src/t2_rtti_a.cpp src/t2_rtti_b.cpp $CXXLIBS && ok bin/t2-020 || bad bin/t2-020
-run "${P}g++" $F -o bin/t3-020 src/t3_threads.cpp $CXXLIBS && ok bin/t3-020 || bad bin/t3-020
-run "${P}g++" $F -o bin/t4-020 src/t4_atomics.cpp $CXXLIBS && ok bin/t4-020 || bad bin/t4-020
+run "${P}g++" $F -o bin/t2-040 src/t2_rtti_a.cpp src/t2_rtti_b.cpp $CXXLIBS && ok bin/t2-040 || bad bin/t2-040
+run "${P}g++" $F -o bin/t3-040 src/t3_threads.cpp $CXXLIBS && ok bin/t3-040 || bad bin/t3-040
+run "${P}g++" $F -o bin/t4-040 src/t4_atomics.cpp $CXXLIBS && ok bin/t4-040 || bad bin/t4-040
 # t3a-t3f: t3's pieces one at a time (t3 crashed with an address error in a thread, 11 Oct)
 for t in t3a_join t3b_condvar t3c_tls t3d_once t3e_async t3g_malloc t3h_malloc_locked; do
     b=${t%%_*}
-    run "${P}g++" $F -o bin/$b-020 src/$t.cpp $CXXLIBS && ok bin/$b-020 || bad bin/$b-020
+    run "${P}g++" $F -o bin/$b-040 src/$t.cpp $CXXLIBS && ok bin/$b-040 || bad bin/$b-040
 done
-run "${P}gcc" -m68020 -m68881 $COMMON -o bin/t3f-020 src/t3f_pthread.c -lpthread && ok bin/t3f-020 || bad bin/t3f-020
+run "${P}gcc" -m68040 -m68881 $COMMON -o bin/t3f-040 src/t3f_pthread.c -lpthread && ok bin/t3f-040 || bad bin/t3f-040
 # t11-t19: C++ thread safety (exceptions in threads, thread_local destructors,
 # more than 22 threads at once, shared_mutex, jthread, atomic wait, cv_any,
 # iostreams, 1150 short threads)
 for t in t11_thread_except t12_tls_dtor t13_many_threads t14_shared_mutex t15_jthread t16_atomic_wait t17_cv_any t18_iostream t19_create_join; do
     b=${t%%_*}
-    run "${P}g++" $F -o bin/$b-020 src/$t.cpp $CXXLIBS && ok bin/$b-020 || bad bin/$b-020
+    run "${P}g++" $F -o bin/$b-040 src/$t.cpp $CXXLIBS && ok bin/$b-040 || bad bin/$b-040
 done
 # t12c, t13c, t19c: t12, t13 and t19 built with -fuse-cxa-atexit. With the stove's default
 # (-fno-use-cxa-atexit) GCC registers no destructor for a thread_local, so these
@@ -62,15 +62,15 @@ done
 # __cxa_thread_atexit and libpthread's TLS destructor loop at thread exit.
 for t in t12_tls_dtor t13_many_threads t19_create_join; do
     b=${t%%_*}c
-    run "${P}g++" $F -fuse-cxa-atexit -o bin/$b-020 src/$t.cpp src/cxa_dso.c $CXXLIBS && ok bin/$b-020 || bad bin/$b-020
+    run "${P}g++" $F -fuse-cxa-atexit -o bin/$b-040 src/$t.cpp src/cxa_dso.c $CXXLIBS && ok bin/$b-040 || bad bin/$b-040
 done
 # t5: a jump table that needs 32-bit offsets
-run "${P}gcc" -m68020 $COMMON -mlong-jump-table-offsets -o bin/t5-020 src/t5_bigswitch.c && ok bin/t5-020 || bad bin/t5-020
+run "${P}gcc" -m68040 $COMMON -mlong-jump-table-offsets -o bin/t5-040 src/t5_bigswitch.c && ok bin/t5-040 || bad bin/t5-040
 # t6: the FPCR clash (exit code 0 is right; 7 is the clash)
 run "${P}gcc" -m68040 -m68881 $COMMON -o bin/t6-040 src/t6_fpcr.c && ok bin/t6-040 || bad bin/t6-040
-# t7..t10 for the 020 and the 060 (no FPU; the 060 multilib takes its soft float from -lm)
-for c in 020 060; do
-    case $c in 020) CF="-m68020 -m68881" ;; 060) CF="-m68060" ;; esac
+# t7..t10 with and without the FPU (040s: soft float, from libgcc and -lm)
+for c in 040 040s; do
+    case $c in 040) CF="-m68040 -m68881" ;; 040s) CF="-m68040" ;; esac
     BR="$OPENTLS/third_party/bearssl"
     BRDEFS="-DBR_USE_UNIX_TIME=0 -DBR_USE_WIN32_TIME=0 -DBR_USE_URANDOM=0 -DBR_USE_WIN32_RAND=0 -DBR_RDRAND=0 -DBR_AES_X86NI=0 -DBR_SSE2=0 -DBR_POWER8=0 -DBR_INT128=0 -DBR_UMUL128=0 -DBR_64=0 -DBR_LE_UNALIGNED=0 -DBR_BE_UNALIGNED=0 -DOT_LOMUL=1"
     run "${P}gcc" $CF $COMMON -DHOST -o bin/t7-$c src/t7_64bit.c -lm && ok bin/t7-$c || bad bin/t7-$c

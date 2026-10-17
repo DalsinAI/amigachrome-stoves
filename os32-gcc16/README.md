@@ -51,28 +51,41 @@ This folder adds broader qualification tests, which need no NDK:
 
 ## The tests
 
+All builds are for the 68040 only (17 October 2026). `040` is `-m68040 -m68881`
+(hard float); `040s` is `-m68040` alone, which with this stove is still soft
+float (the `libm020` multilib, calls such as `___muldf3`). `compat/` builds
+`libos32compat` at `-m68040 -m68881`; its maths parts return doubles in `fp0`,
+so soft-float programs must not call them.
+
+The stove's own default CPU is still the 68000: bebbo's GCC is configured
+without `--with-cpu`, and a build with no CPU flag gets `-mcpu=68000` and the
+68000 libraries. Making the 68040 the default takes a compiler rebuild in
+openamigagcc (`--with-cpu=68040`), and a `libm040` multilib if the 68040 is to
+have libraries of its own; today `-m68040` uses the `libm020` ones. Until then
+every build passes `-m68040`.
+
 | Test | What | Built for |
 | --- | --- | --- |
-| t1 | C++ exceptions through a static library and through C built with `-fexceptions`; destructors on unwind; rethrow; `exception_ptr` | 020 |
-| t2 | `dynamic_cast` and `typeid` across translation units, virtual inheritance, `bad_cast` | 020 |
-| t3 | `std::thread`, `mutex`, `condition_variable`, `thread_local`, `call_once`, `async` | 020 |
-| t4 | 64-bit `atomic`, `atomic_ref`, `compare_exchange`, `atomic<double>` | 020 |
-| t5 | a 3,000-case `switch` (`-mlong-jump-table-offsets`) | 020 |
+| t1 | C++ exceptions through a static library and through C built with `-fexceptions`; destructors on unwind; rethrow; `exception_ptr` | 040 |
+| t2 | `dynamic_cast` and `typeid` across translation units, virtual inheritance, `bad_cast` | 040 |
+| t3 | `std::thread`, `mutex`, `condition_variable`, `thread_local`, `call_once`, `async` | 040 |
+| t4 | 64-bit `atomic`, `atomic_ref`, `compare_exchange`, `atomic<double>` | 040 |
+| t5 | a 3,000-case `switch` (`-mlong-jump-table-offsets`) | 040 |
 | t6 | the FPCR clash (as openamigagcc 0003 fixed it) | 040 + 68881 |
-| t7 | 64-bit arithmetic: stack arguments, spills, shifts, multiplies, divides, varargs, structs | 020, 060 |
-| t8 | BearSSL as OpenTLS's CPU=060 build compiles it (i15, ctmul32, m15 curves), output equal to `expected/` | 020, 060 |
-| t9 | OpenCrypto (SHA-2, X25519, Ed25519, ChaCha20-Poly1305, AES, RSA, ECDSA, sntrup761), output equal to `expected/` | 020, 060 |
-| t10 | the loop shift and an overlapping backward copy | 020, 060 |
-| t11 | exceptions thrown and caught in 8 threads; carried out of `async`, `promise`, `packaged_task` and an `exception_ptr` | 020 |
-| t12 | `thread_local` objects with constructors and destructors in 80 threads: destroyed by the time `join()` returns, counts equal | 020 |
-| t13 | 50, then 100 threads alive at once (past libpthread's 22- and 94-slot table sizes), each with `thread_local` data | 020 |
-| t14 | `shared_mutex` readers and writers; `shared_timed_mutex` `try_lock_for` and `try_lock_shared` | 020 |
-| t15 | `jthread`, `stop_token`, `stop_callback`, `condition_variable_any::wait` with a `stop_token` | 020 |
-| t16 | `atomic` wait/notify, `atomic_flag` wait, `latch`, `barrier`, `counting_semaphore` | 020 |
-| t17 | `condition_variable_any` with `mutex`, `shared_mutex` and a lock of its own; `wait_for` timing out | 020 |
-| t18 | `ostringstream`/`istringstream` (ints, hex, doubles) in 8 threads; `cout` from several threads | 020 |
-| t19 | 1,150 short threads: one after another, in batches, detached, `async`; `thread_local` destructors | 020 |
-| t12c, t13c, t19c | t12, t13 and t19 built with `-fuse-cxa-atexit` (and `src/cxa_dso.c` for `__dso_handle`), so that `thread_local` destructors are registered | 020 |
+| t7 | 64-bit arithmetic: stack arguments, spills, shifts, multiplies, divides, varargs, structs | 040, 040s |
+| t8 | BearSSL as OpenTLS compiles it (i15, ctmul32, m15 curves), output equal to `expected/` | 040, 040s |
+| t9 | OpenCrypto (SHA-2, X25519, Ed25519, ChaCha20-Poly1305, AES, RSA, ECDSA, sntrup761), output equal to `expected/` | 040, 040s |
+| t10 | the loop shift and an overlapping backward copy | 040, 040s |
+| t11 | exceptions thrown and caught in 8 threads; carried out of `async`, `promise`, `packaged_task` and an `exception_ptr` | 040 |
+| t12 | `thread_local` objects with constructors and destructors in 80 threads: destroyed by the time `join()` returns, counts equal | 040 |
+| t13 | 50, then 100 threads alive at once (past libpthread's 22- and 94-slot table sizes), each with `thread_local` data | 040 |
+| t14 | `shared_mutex` readers and writers; `shared_timed_mutex` `try_lock_for` and `try_lock_shared` | 040 |
+| t15 | `jthread`, `stop_token`, `stop_callback`, `condition_variable_any::wait` with a `stop_token` | 040 |
+| t16 | `atomic` wait/notify, `atomic_flag` wait, `latch`, `barrier`, `counting_semaphore` | 040 |
+| t17 | `condition_variable_any` with `mutex`, `shared_mutex` and a lock of its own; `wait_for` timing out | 040 |
+| t18 | `ostringstream`/`istringstream` (ints, hex, doubles) in 8 threads; `cout` from several threads | 040 |
+| t19 | 1,150 short threads: one after another, in batches, detached, `async`; `thread_local` destructors | 040 |
+| t12c, t13c, t19c | t12, t13 and t19 built with `-fuse-cxa-atexit` (and `src/cxa_dso.c` for `__dso_handle`), so that `thread_local` destructors are registered | 040 |
 
 ## What the tests show on AmigaOS (lab of Instance-32, 12 October)
 

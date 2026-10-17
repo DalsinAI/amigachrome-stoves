@@ -10,10 +10,12 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 STOVE=${STOVE:-$HOME/AmigaChrome/stoves/os32-gcc16}
 OUT=${1:-$HERE}
 P=$STOVE/prefix/bin/m68k-amigaos-
-# These reproduce the installed objects exactly: the compat sources at -O2,
-# the long double wrappers at -Os -fno-builtin (so each calls the double function).
-COMPAT="-m68020 -m68881 -O2 -Wall"
-LDBL="-m68020 -m68881 -Os -fno-builtin -Wall"
+# 68040 with the FPU (hard float): the compat sources at -O2, the long double
+# wrappers at -Os -fno-builtin (so each calls the double function). The maths
+# parts return doubles in fp0, so soft-float programs (-m68040 without -m68881)
+# must not call them. Libraries installed before 17 Oct 2026 were -m68020.
+COMPAT="-m68040 -m68881 -O2 -Wall"
+LDBL="-m68040 -m68881 -Os -fno-builtin -Wall"
 # One library per code model: OUT/libos32compat.a (absolute), OUT/libb/ (-fbaserel) and
 # OUT/libb32/ (-fbaserel32). Base-relative programs need their own: absolute-model code
 # uses a4 as a scratch register, and the malloc wrappers call back into libnix.

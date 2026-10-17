@@ -7,9 +7,13 @@ machine it targets. Built stoves are published as releases.
 
 | Stove | Compiler | Builds programs for | Status |
 | --- | --- | --- | --- |
-| [aros68k-gcc16](aros68k-gcc16/) | GCC 16.2.0, binutils 2.47 | AROS 68k | Experimental |
-| [os32-gcc16](os32-gcc16/) | bebbo's GCC 16.2.0b (`amiga16.2`) | AmigaOS 3.x | Tests only: built by [openamigagcc](https://github.com/DalsinAI/openamigagcc) |
+| [aros68k-gcc16](aros68k-gcc16/) | GCC 16.2.0, binutils 2.47 | AROS 68k (68040) | Experimental |
+| [os32-gcc16](os32-gcc16/) | bebbo's GCC 16.2.0b (`amiga16.2`) | AmigaOS 3.x (68040) | Tests only: built by [openamigagcc](https://github.com/DalsinAI/openamigagcc) |
 | [os4-gcc16](os4-gcc16/) | GCC 16.2.0, binutils 2.47, with our AmigaOS 4 patches | AmigaOS 4.1 PowerPC | Experimental |
+
+All our 68k builds are for the 68040 only: every build passes `-m68040` (the
+aros68k-gcc16 recipe also makes it the default). `-m68040` alone is soft float
+with os32-gcc16 and hard float with aros68k-gcc16.
 
 Each stove says what it is in `stove.json`, so it is never mistaken for
 another compiler: a stove is added beside the ones that work, never in place

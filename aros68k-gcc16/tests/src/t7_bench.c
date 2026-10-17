@@ -41,7 +41,7 @@ int main(void)
     for (int i = 0; i < 64; i++) for (int j = 0; j < 64; j++) { A[i][j] = (i * 3 + j) % 17 - 8; B[i][j] = (i + j * 5) % 13 - 6; }
     for (int r = 0; r < 4; r++) { for (int i = 0; i < 64; i++) for (int j = 0; j < 64; j++) { int acc = 0; for (int k = 0; k < 64; k++) acc += A[i][k] * B[k][j]; C[i][j] = acc + r; } msum += C[r][63 - r]; }
     clock_t t4 = clock();
-    int inside = 0;   /* soft-float on a 68000 */
+    int inside = 0;   /* hard float with -m68040 */
     for (int y = 0; y < 48; y++) for (int x = 0; x < 64; x++) { double cr = -2.0 + x * 3.0 / 64, ci = -1.2 + y * 2.4 / 48, zr = 0, zi = 0; int n = 0; while (n < 64 && zr * zr + zi * zi < 4.0) { double t = zr * zr - zi * zi + cr; zi = 2 * zr * zi + ci; zr = t; n++; } if (n == 64) inside++; }
     clock_t t5 = clock();
     printf("  crc32   %08lx  %8.0f ms\n", (unsigned long)crc, ms(t0, t1));

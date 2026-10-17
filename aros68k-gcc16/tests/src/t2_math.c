@@ -1,4 +1,4 @@
-/* t2: 64-bit integers and floating point (soft-float on a 68000). */
+/* t2: 64-bit integers and floating point (hard float with -m68040; soft float on a 68000). */
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
