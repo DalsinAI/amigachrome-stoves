@@ -53,7 +53,7 @@ SHA-256.
 ## Build it
 
 ```sh
-./build.sh --stove ~/AmigaChrome/stoves/os4 --work ~/AmigaChrome-dev/stove-work/os4-gcc16
+./build.sh --stove ~/AmigaChrome/stoves/os4 --work "${AMIGACHROME_DEV:-$HOME/AmigaChrome-dev}/stove-work/os4-gcc16"
 ```
 
 | Option | Default | What |
