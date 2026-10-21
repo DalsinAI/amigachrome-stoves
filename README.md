@@ -37,6 +37,16 @@ LC/EC040). Two fixes, both in `build/`:
   on purpose. `--check-only` just checks. The `-specs=` flag stays harmless on
   a stove that has the fix.
 
+The game ports (amigachrome-gameports: AstroMenace, AssaultCube, UQM,
+NXEngine) link zlib, PNG, JPEG and FreeType from an inventory pinned by
+SHA-256 in that repository's `toolchain/port-dependencies.lock.json`, and
+refuse to build (`DEPENDENCY_GATE_FAILED`) until a stove holds it in
+`prefix/m68k-amigaos/port-deps/`. `build/install-port-deps.sh STOVE GAMEPORTS
+SOURCE` stages it with the gameports checkout's own `port_dependencies.py`:
+every hash is checked first, only `port-deps/` is written, and a stove that
+already verifies is left as it is. `--check-only` just checks; a live stove
+under `~/AmigaChrome/stoves` needs `LIVE_OK=1`, as for the specs.
+
 The aros68k-gcc16 recipe makes `-mcpu=68040` with soft float its default
 through its own specs file (see its README).
 
