@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SacredTrees <121399723+SacredTrees@users.noreply.github.com>
+Date: Thu, 22 Oct 2026 21:08:48 +0000
+Subject: [PATCH 8/8] [M68k] Only collapse MOVEMs whose registers follow
+ address order
+
+MOVEM moves the lowest numbered register to or from the lowest address.
+The collapse pass compared a new register with the whole mask, so with
+d0 at 4(sp) and a1 at 8(sp) it took d2 at 0(sp) as "below" (d2 < a1)
+and merged it, swapping d0 and d2. At -O0 this sent a zero divisor to
+__udivdi3 inside Rust's float formatting and the program hung. A
+register now joins above the block only if it is above every register
+in it, and below only if it is below every one.
+
+Team 3
+---
+ .../lib/Target/M68k/M68kCollapseMOVEMPass.cpp |  8 ++++---
+ llvm/test/CodeGen/M68k/CollapseMOVEM.mir      | 24 +++++++++++++++++++
+ 2 files changed, 29 insertions(+), 3 deletions(-)
+
+diff --git a/llvm/lib/Target/M68k/M68kCollapseMOVEMPass.cpp b/llvm/lib/Target/M68k/M68kCollapseMOVEMPass.cpp
+index 286ea0aa74..b67f2fd5b0 100644
+--- a/llvm/lib/Target/M68k/M68kCollapseMOVEMPass.cpp
++++ b/llvm/lib/Target/M68k/M68kCollapseMOVEMPass.cpp
+@@ -94,11 +94,13 @@ public:
+   UpdateType classifyUpdateByMask(unsigned NewMask) const {
+     assert(NewMask && "Mask needs to select at least one register");
+ 
+-    if (NewMask > Mask) {
++    // MOVEM moves the lowest numbered register to or from the lowest address,
++    // so a register added above the block must be above every register in it,
++    // and one added below must be below every one of them.
++    if (!Mask || llvm::countr_zero(NewMask) > llvm::Log2_32(Mask))
+       return Ascending;
+-    } else if (NewMask < Mask) {
++    if (llvm::Log2_32(NewMask) < llvm::countr_zero(Mask))
+       return Descending;
+-    }
+ 
+     return Intermixed;
+   }
+diff --git a/llvm/test/CodeGen/M68k/CollapseMOVEM.mir b/llvm/test/CodeGen/M68k/CollapseMOVEM.mir
+index e879e1eccc..70aa7b0b93 100644
+--- a/llvm/test/CodeGen/M68k/CollapseMOVEM.mir
++++ b/llvm/test/CodeGen/M68k/CollapseMOVEM.mir
+@@ -174,3 +174,27 @@ body: |
+     MOVM32pm -4, $sp, 4
+ 
+ ...
++--- # CollapseMOVEM_Below_Lowest_Only
++#
++# A register joins below the block only if it is below every register in it.
++# d2 is below a1 but above d0, so it must stay on its own.
++# CHECK-LABEL: CollapseMOVEM_Below_Lowest_Only
++# CHECK:       movem.l (4,%sp), %d0/%a1
++# CHECK-NEXT:  movem.l (0,%sp), %d2
++# CHECK:       movem.l (0,%sp), %d0/%d2/%a1
++# CHECK:       movem.l %d0/%a1, (4,%sp)
++# CHECK-NEXT:  movem.l %d2, (0,%sp)
++name: CollapseMOVEM_Below_Lowest_Only
++body: |
++  bb.0:
++    MOVM32mp 1,    4, $sp
++    MOVM32mp 512,  8, $sp
++    MOVM32mp 4,    0, $sp
++    MOVM32mp 4,    4, $sp
++    MOVM32mp 512,  8, $sp
++    MOVM32mp 1,    0, $sp
++    MOVM32pm 4, $sp, 1
++    MOVM32pm 8, $sp, 512
++    MOVM32pm 0, $sp, 4
++
++...

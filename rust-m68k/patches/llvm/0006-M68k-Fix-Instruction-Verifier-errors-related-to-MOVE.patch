@@ -1,0 +1,247 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SacredTrees <121399723+SacredTrees@users.noreply.github.com>
+Date: Thu, 22 Oct 2026 20:58:33 +0000
+Subject: [PATCH 6/8] [M68k] Fix Instruction Verifier errors related to `MOVEM`
+ and `PHI` lowering (#219011)
+
+This fixes some errors reported by the Instruction Verifier when
+building with `-verify-machineinstrs`.
+
+- The `MOVM` pseudos are given an 8-bit variant so that the IV can
+correctly see 8-bit physical registers being defined/used. Without this,
+8-bit register spills fail IV by attempting to load/store an undefined
+physical register (the 16-bit superclass of the 8-bit register). Codegen
+is not affected by this change.
+- During `CollapseMOVEMPass`, the implicit ops are now copied over from
+the old deleted instructions into the new combined instruction. This
+fixes IV failing in cases where an instruction wants to use registers
+that were defined by the collapsed `MOVEM`. Codegen is not affected by
+this change.
+- CCR is now marked as non-allocatable (which is true anyway). The
+custom inserter for `CMOV` (`emitLoweredSelect()`) has logic where CCR
+is added as a live-in for the newly-created blocks that are expected to
+use it. This would cause IV to fail, because IV doesn't allow non-entry
+blocks to have allocatable physical registers as live-ins before
+register allocation. This change has a small effect on codegen where
+certain redundant compare instructions can now be eliminated by CSE. I
+added a test `cmp-cse.ll` to demonstrate this.
+---
+ .../lib/Target/M68k/M68kCollapseMOVEMPass.cpp | 35 +++++-----
+ llvm/lib/Target/M68k/M68kExpandPseudo.cpp     |  4 ++
+ llvm/lib/Target/M68k/M68kInstrData.td         |  8 +++
+ llvm/lib/Target/M68k/M68kInstrInfo.cpp        |  2 +-
+ llvm/lib/Target/M68k/M68kRegisterInfo.td      |  2 +-
+ llvm/test/CodeGen/M68k/Control/cmp-cse.ll     | 67 +++++++++++++++++++
+ 6 files changed, 101 insertions(+), 17 deletions(-)
+ create mode 100644 llvm/test/CodeGen/M68k/Control/cmp-cse.ll
+
+diff --git a/llvm/lib/Target/M68k/M68kCollapseMOVEMPass.cpp b/llvm/lib/Target/M68k/M68kCollapseMOVEMPass.cpp
+index a40b08ade6..cbc7d265b1 100644
+--- a/llvm/lib/Target/M68k/M68kCollapseMOVEMPass.cpp
++++ b/llvm/lib/Target/M68k/M68kCollapseMOVEMPass.cpp
+@@ -177,26 +177,31 @@ public:
+       return;
+     }
+ 
+-    // Delete all the MOVEM instruction till the end
+-    while (MI != End) {
++    // Add a unified MOVEM
++    MachineInstrBuilder NewMIB;
++    if (State.isLoad()) {
++      NewMIB = BuildMI(MBB, End, DL, TII->get(M68k::MOVM32mp))
++                   .addImm(State.getMask())
++                   .addImm(State.getFinalOffset())
++                   .addReg(State.getBase());
++    } else {
++      NewMIB = BuildMI(MBB, End, DL, TII->get(M68k::MOVM32pm))
++                   .addImm(State.getFinalOffset())
++                   .addReg(State.getBase())
++                   .addImm(State.getMask());
++    }
++
++    // Delete all the old MOVEM instructions, and copy their implicit defs/uses
++    // over to the new instruction.
++    MachineFunction *MF = MBB.getParent();
++    MachineInstr *NewMI = NewMIB.getInstr();
++    while (MI != NewMI) {
+       auto Next = std::next(MI);
++      NewMI->copyImplicitOps(*MF, *MI);
+       MBB.erase(MI);
+       MI = Next;
+     }
+ 
+-    // Add a unified one
+-    if (State.isLoad()) {
+-      BuildMI(MBB, End, DL, TII->get(M68k::MOVM32mp))
+-          .addImm(State.getMask())
+-          .addImm(State.getFinalOffset())
+-          .addReg(State.getBase());
+-    } else {
+-      BuildMI(MBB, End, DL, TII->get(M68k::MOVM32pm))
+-          .addImm(State.getFinalOffset())
+-          .addReg(State.getBase())
+-          .addImm(State.getMask());
+-    }
+-
+     State = MOVEMState();
+   }
+ 
+diff --git a/llvm/lib/Target/M68k/M68kExpandPseudo.cpp b/llvm/lib/Target/M68k/M68kExpandPseudo.cpp
+index 8fafff3d52..37c3064f3a 100644
+--- a/llvm/lib/Target/M68k/M68kExpandPseudo.cpp
++++ b/llvm/lib/Target/M68k/M68kExpandPseudo.cpp
+@@ -187,21 +187,25 @@ bool M68kExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
+     return TII->ExpandMOVSZX_RM(MIB, false, TII->get(M68k::MOV16dq), MVT::i32,
+                                 MVT::i16);
+ 
++  case M68k::MOVM8jm_P:
+   case M68k::MOVM16jm_P:
+     return TII->ExpandMOVEM(MIB, TII->get(M68k::MOVM16jm), /*IsRM=*/false);
+   case M68k::MOVM32jm_P:
+     return TII->ExpandMOVEM(MIB, TII->get(M68k::MOVM32jm), /*IsRM=*/false);
+ 
++  case M68k::MOVM8pm_P:
+   case M68k::MOVM16pm_P:
+     return TII->ExpandMOVEM(MIB, TII->get(M68k::MOVM16pm), /*IsRM=*/false);
+   case M68k::MOVM32pm_P:
+     return TII->ExpandMOVEM(MIB, TII->get(M68k::MOVM32pm), /*IsRM=*/false);
+ 
++  case M68k::MOVM8mj_P:
+   case M68k::MOVM16mj_P:
+     return TII->ExpandMOVEM(MIB, TII->get(M68k::MOVM16mj), /*IsRM=*/true);
+   case M68k::MOVM32mj_P:
+     return TII->ExpandMOVEM(MIB, TII->get(M68k::MOVM32mj), /*IsRM=*/true);
+ 
++  case M68k::MOVM8mp_P:
+   case M68k::MOVM16mp_P:
+     return TII->ExpandMOVEM(MIB, TII->get(M68k::MOVM16mp), /*IsRM=*/true);
+   case M68k::MOVM32mp_P:
+diff --git a/llvm/lib/Target/M68k/M68kInstrData.td b/llvm/lib/Target/M68k/M68kInstrData.td
+index d364551a33..b54cf1c9d0 100644
+--- a/llvm/lib/Target/M68k/M68kInstrData.td
++++ b/llvm/lib/Target/M68k/M68kInstrData.td
+@@ -364,17 +364,25 @@ let mayLoad = 1 in
+ class MxMOVEM_RM_Pseudo<MxType TYPE, MxOperand MEMOp>
+     : MxPseudo<(outs TYPE.ROp:$dst), (ins MEMOp:$src)>;
+ 
++// Note that MOVEM doesn't natively support 8-bit values; the pseudos for these
++// get expanded to MOVM16. But they keep the instruction verifier from reporting
++// a mismatch on physical registers.
++
+ // Mem <- Reg
++def MOVM8jm_P : MxMOVEM_MR_Pseudo<MxType8d, MxType8.JOp>;
+ def MOVM16jm_P : MxMOVEM_MR_Pseudo<MxType16r, MxType16.JOp>;
+ def MOVM32jm_P : MxMOVEM_MR_Pseudo<MxType32r, MxType32.JOp>;
+ 
++def MOVM8pm_P : MxMOVEM_MR_Pseudo<MxType8d, MxType8.POp>;
+ def MOVM16pm_P : MxMOVEM_MR_Pseudo<MxType16r, MxType16.POp>;
+ def MOVM32pm_P : MxMOVEM_MR_Pseudo<MxType32r, MxType32.POp>;
+ 
+ // Reg <- Mem
++def MOVM8mj_P : MxMOVEM_RM_Pseudo<MxType8d, MxType8.JOp>;
+ def MOVM16mj_P : MxMOVEM_RM_Pseudo<MxType16r, MxType16.JOp>;
+ def MOVM32mj_P : MxMOVEM_RM_Pseudo<MxType32r, MxType32.JOp>;
+ 
++def MOVM8mp_P : MxMOVEM_RM_Pseudo<MxType8d, MxType8.POp>;
+ def MOVM16mp_P : MxMOVEM_RM_Pseudo<MxType16r, MxType16.POp>;
+ def MOVM32mp_P : MxMOVEM_RM_Pseudo<MxType32r, MxType32.POp>;
+ 
+diff --git a/llvm/lib/Target/M68k/M68kInstrInfo.cpp b/llvm/lib/Target/M68k/M68kInstrInfo.cpp
+index 73ab0dc3b1..54ee0f5426 100644
+--- a/llvm/lib/Target/M68k/M68kInstrInfo.cpp
++++ b/llvm/lib/Target/M68k/M68kInstrInfo.cpp
+@@ -843,7 +843,7 @@ unsigned getLoadStoreRegOpcode(unsigned Reg, const TargetRegisterClass *RC,
+     if (M68k::XR16RegClass.hasSubClassEq(RC))
+       return load ? M68k::MOVM16mp_P : M68k::MOVM16pm_P;
+     if (M68k::DR8RegClass.hasSubClassEq(RC))
+-      return load ? M68k::MOVM16mp_P : M68k::MOVM16pm_P;
++      return load ? M68k::MOVM8mp_P : M68k::MOVM8pm_P;
+     if (M68k::CCRCRegClass.hasSubClassEq(RC))
+       return load ? M68k::MOVM16mp_P : M68k::MOVM16pm_P;
+     llvm_unreachable("Unknown 2-byte regclass");
+diff --git a/llvm/lib/Target/M68k/M68kRegisterInfo.td b/llvm/lib/Target/M68k/M68kRegisterInfo.td
+index 25492c6fc9..86493e331b 100644
+--- a/llvm/lib/Target/M68k/M68kRegisterInfo.td
++++ b/llvm/lib/Target/M68k/M68kRegisterInfo.td
+@@ -133,7 +133,7 @@ def FPDR64 : MxRegClass<[f64], 32, (add FPDR32)>;
+ let RegInfos = RegInfoByHwMode<[DefaultMode], [RegInfo<80,128,32>]> in
+ def FPDR80 : MxRegClass<[f80], 32, (add FPDR32)>;
+ 
+-let CopyCost = -1 in {
++let CopyCost = -1, isAllocatable = 0 in {
+   let RegInfos = RegInfoByHwMode<[DefaultMode], [RegInfo<8,16,16>]> in
+   def CCRC : MxRegClass<[i8],  16, (add CCR)>;
+   let RegInfos = RegInfoByHwMode<[DefaultMode], [RegInfo<16,16,16>]> in
+diff --git a/llvm/test/CodeGen/M68k/Control/cmp-cse.ll b/llvm/test/CodeGen/M68k/Control/cmp-cse.ll
+new file mode 100644
+index 0000000000..2dcf3b1fc5
+--- /dev/null
++++ b/llvm/test/CodeGen/M68k/Control/cmp-cse.ll
+@@ -0,0 +1,67 @@
++; NOTE: Assertions have been autogenerated by utils/update_llc_test_checks.py
++; RUN: llc < %s -mtriple=m68k-linux -verify-machineinstrs | FileCheck %s
++
++; The purpose of this test is to ensure that %cmp2 doesn't emit a redundant
++; compare instruction; it should be eliminated by CSE.
++define i1 @cse(ptr %y) nounwind {
++; CHECK-LABEL: cse:
++; CHECK:       ; %bb.0:
++; CHECK-NEXT:    move.l (4,%sp), %a0
++; CHECK-NEXT:    move.w (%a0), %d0
++; CHECK-NEXT:    cmpi.w #0, %d0
++; CHECK-NEXT:    bmi .LBB0_2
++; CHECK-NEXT:  ; %bb.1: ; %cmp2
++; CHECK-NEXT:    beq .LBB0_3
++; CHECK-NEXT:  .LBB0_2: ; %yes
++; CHECK-NEXT:    moveq #1, %d0
++; CHECK-NEXT:    rts
++; CHECK-NEXT:  .LBB0_3: ; %no
++; CHECK-NEXT:    moveq #0, %d0
++; CHECK-NEXT:    rts
++  %1 = load i16, ptr %y
++  %2 = icmp slt i16 %1, 0
++  br i1 %2, label %yes, label %cmp2
++
++cmp2:
++  %.not = icmp eq i16 %1, 0
++  br i1 %.not, label %no, label %yes
++
++yes:
++  ret i1 1
++
++no:
++  ret i1 0
++}
++
++; The compare condition is different and therefore not eliminated by CSE.
++define i1 @no_cse(ptr %y) nounwind {
++; CHECK-LABEL: no_cse:
++; CHECK:       ; %bb.0:
++; CHECK-NEXT:    move.l (4,%sp), %a0
++; CHECK-NEXT:    move.w (%a0), %d0
++; CHECK-NEXT:    cmpi.w #0, %d0
++; CHECK-NEXT:    bmi .LBB1_2
++; CHECK-NEXT:  ; %bb.1: ; %cmp2
++; CHECK-NEXT:    and.l #65535, %d0
++; CHECK-NEXT:    sub.l #10, %d0
++; CHECK-NEXT:    bne .LBB1_2
++; CHECK-NEXT:  ; %bb.3: ; %no
++; CHECK-NEXT:    moveq #0, %d0
++; CHECK-NEXT:    rts
++; CHECK-NEXT:  .LBB1_2: ; %yes
++; CHECK-NEXT:    moveq #1, %d0
++; CHECK-NEXT:    rts
++  %1 = load i16, ptr %y
++  %2 = icmp slt i16 %1, 0
++  br i1 %2, label %yes, label %cmp2
++
++cmp2:
++  %.not = icmp eq i16 %1, 10
++  br i1 %.not, label %no, label %yes
++
++yes:
++  ret i1 1
++
++no:
++  ret i1 0
++}

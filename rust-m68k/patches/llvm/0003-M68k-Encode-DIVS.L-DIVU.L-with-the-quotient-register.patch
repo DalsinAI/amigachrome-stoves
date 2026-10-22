@@ -1,0 +1,91 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SacredTrees <121399723+SacredTrees@users.noreply.github.com>
+Date: Thu, 22 Oct 2026 20:30:47 +0000
+Subject: [PATCH 3/8] [M68k] Encode DIVS.L/DIVU.L with the quotient register in
+ the Dr field
+
+The 32-bit DIVS.L/DIVU.L <ea>,Dq form needs Dq in both register fields
+of the extension word. The Dr field was always 0, so every 32-bit
+divide was DIVSL/DIVUL <ea>,D0:Dq and wrote the remainder into D0,
+whatever D0 held. Rust's integer formatting lost signs and printed a
+stray leading 0 from it. MULS.L/MULU.L keep Dh 0, as GNU as encodes
+them.
+
+Team 3
+---
+ llvm/lib/Target/M68k/M68kInstrArithmetic.td   | 13 +++++++++----
+ llvm/test/MC/Disassembler/M68k/arithmetic.txt |  6 ++++++
+ llvm/test/MC/M68k/Arith/Classes/MxDiMu.s      |  8 ++++++++
+ 3 files changed, 23 insertions(+), 4 deletions(-)
+
+diff --git a/llvm/lib/Target/M68k/M68kInstrArithmetic.td b/llvm/lib/Target/M68k/M68kInstrArithmetic.td
+index 56b71db2d1..b6967bc0b7 100644
+--- a/llvm/lib/Target/M68k/M68kInstrArithmetic.td
++++ b/llvm/lib/Target/M68k/M68kInstrArithmetic.td
+@@ -590,7 +590,12 @@ class MxDiMuOp_DD<string MN, bits<4> CMD, bit SIGNED = false,
+ }
+ 
+ // $dreg <- $dreg op $dreg
+-class MxDiMuOp_DD_Long<string MN, SDNode NODE, bits<10> CMD, bit SIGNED = false>
++// For DIVS.L/DIVU.L the second register field (Dr) must name the quotient
++// register too: with any other register the CPU does the 32/32 divide with
++// remainder (DIVSL/DIVUL) and writes the remainder there. MULS.L/MULU.L with
++// a 32-bit result ignore that field (Dh), which stays 0 as GNU as encodes it.
++class MxDiMuOp_DD_Long<string MN, SDNode NODE, bits<10> CMD, bit SIGNED = false,
++                       bit DIV = false>
+     : MxInst<(outs MxDRD32:$dst), (ins MxDRD32:$src, MxDRD32:$opd), MN#"\t$opd, $dst",
+              [(set i32:$dst, CCR, (NODE i32:$src, i32:$opd))]> {
+   let Inst = (ascend
+@@ -602,7 +607,7 @@ class MxDiMuOp_DD_Long<string MN, SDNode NODE, bits<10> CMD, bit SIGNED = false>
+       !if(SIGNED, 0b1, 0b0),
+       /*SIZE*/0b0, 0b0000000,
+       // Dr REGISTER
+-      0b000)
++      !if(DIV, (operand "$dst", 3), (descend 0b000)))
+   );
+ }
+ 
+@@ -633,8 +638,8 @@ multiclass MxDiMuOp<string MN, bits<4> CMD> {
+ 
+ defm DIV : MxDiMuOp<"div", 0x8>;
+ 
+-def SDIVd32d32 : MxDiMuOp_DD_Long<"divs.l", sdiv, 0x131, /*SIGNED*/true>;
+-def UDIVd32d32 : MxDiMuOp_DD_Long<"divu.l", udiv, 0x131, /*SIGNED*/false>;
++def SDIVd32d32 : MxDiMuOp_DD_Long<"divs.l", sdiv, 0x131, /*SIGNED*/true, /*DIV*/true>;
++def UDIVd32d32 : MxDiMuOp_DD_Long<"divu.l", udiv, 0x131, /*SIGNED*/false, /*DIV*/true>;
+ 
+ // This is used to cast immediates to 16-bits for operations which don't
+ // support smaller immediate sizes.
+diff --git a/llvm/test/MC/Disassembler/M68k/arithmetic.txt b/llvm/test/MC/Disassembler/M68k/arithmetic.txt
+index 8142024940..9f11d67653 100644
+--- a/llvm/test/MC/Disassembler/M68k/arithmetic.txt
++++ b/llvm/test/MC/Disassembler/M68k/arithmetic.txt
+@@ -223,3 +223,9 @@
+ 
+ # CHECK: adda.l  $f0001, %a0
+ 0xd1 0xf9 0x00 0x0f 0x00 0x01
++
++# CHECK: divu.l %d4, %d3
++0x4c 0x44 0x30 0x03
++
++# CHECK: divs.l %d4, %d3
++0x4c 0x44 0x38 0x03
+diff --git a/llvm/test/MC/M68k/Arith/Classes/MxDiMu.s b/llvm/test/MC/M68k/Arith/Classes/MxDiMu.s
+index 964dbfcc11..6ee623b865 100644
+--- a/llvm/test/MC/M68k/Arith/Classes/MxDiMu.s
++++ b/llvm/test/MC/M68k/Arith/Classes/MxDiMu.s
+@@ -18,6 +18,14 @@ divs.l	%d1, %d0
+ ; CHECK:	divu.l	%d1, %d0
+ ; CHECK-SAME:	encoding: [0x4c,0x41,0x00,0x00]
+ divu.l	%d1, %d0
++; The Dr field names the quotient register too, or the CPU writes a
++; remainder into it.
++; CHECK:	divs.l	%d4, %d3
++; CHECK-SAME:	encoding: [0x4c,0x44,0x38,0x03]
++divs.l	%d4, %d3
++; CHECK:	divu.l	%d4, %d3
++; CHECK-SAME:	encoding: [0x4c,0x44,0x30,0x03]
++divu.l	%d4, %d3
+ ; CHECK:      muls  %d1, %d0
+ ; CHECK-SAME: encoding: [0xc1,0xc1]
+ muls	%d1, %d0

@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: SacredTrees <121399723+SacredTrees@users.noreply.github.com>
+Date: Thu, 22 Oct 2026 21:08:03 +0000
+Subject: [PATCH 7/8] [M68k] Fix MOVEM collapse pass for 2 instances of same
+ register (#174349)
+
+Add test case for MOVEM collapse opt pass failure and fix pass handling
+of 2 appearances of the same register in a MOVEM block.
+---
+ llvm/lib/Target/M68k/M68kCollapseMOVEMPass.cpp |  5 +++++
+ llvm/test/CodeGen/M68k/CollapseMOVEM.mir       | 13 +++++++++++++
+ 2 files changed, 18 insertions(+)
+
+diff --git a/llvm/lib/Target/M68k/M68kCollapseMOVEMPass.cpp b/llvm/lib/Target/M68k/M68kCollapseMOVEMPass.cpp
+index cbc7d265b1..286ea0aa74 100644
+--- a/llvm/lib/Target/M68k/M68kCollapseMOVEMPass.cpp
++++ b/llvm/lib/Target/M68k/M68kCollapseMOVEMPass.cpp
+@@ -104,6 +104,11 @@ public:
+   }
+ 
+   bool update(int O, int M) {
++    if (Mask & M)
++      // We've already seen this register and are planning on collapsing it
++      // into a MOVEM. This cannot be done twice for the same register in the
++      // same MOVEM, so bail out now.
++      return false;
+     UpdateType Type = classifyUpdateByMask(M);
+     if (Type == Intermixed)
+       return false;
+diff --git a/llvm/test/CodeGen/M68k/CollapseMOVEM.mir b/llvm/test/CodeGen/M68k/CollapseMOVEM.mir
+index ac281cd577..e879e1eccc 100644
+--- a/llvm/test/CodeGen/M68k/CollapseMOVEM.mir
++++ b/llvm/test/CodeGen/M68k/CollapseMOVEM.mir
+@@ -161,3 +161,16 @@ body: |
+     MOVM32pm -8, $sp, 16
+ 
+ ...
++--- # CollapseMOVEM_Overlapping_Regs
++#
++# CHECK-LABEL: CollapseMOVEM_Overlapping_Regs
++# CHECK:       movem.l %d1-%d2, (0,%sp)
++# CHECK-NEXT:  movem.l %d2, (-4,%sp)
++name: CollapseMOVEM_Overlapping_Regs
++body: |
++  bb.0:
++    MOVM32pm 0, $sp, 2
++    MOVM32pm 4, $sp, 4
++    MOVM32pm -4, $sp, 4
++
++...
