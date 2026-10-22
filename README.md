@@ -10,6 +10,7 @@ machine it targets. Built stoves are published as releases.
 | [aros68k-gcc16](aros68k-gcc16/) | GCC 16.2.0, binutils 2.47 | AROS 68k (68040) | Experimental |
 | [os32-gcc16](os32-gcc16/) | bebbo's GCC 16.2.0b (`amiga16.2`) | AmigaOS 3.x (68040) | Tests only: built by [openamigagcc](https://github.com/DalsinAI/openamigagcc) |
 | [os4-gcc16](os4-gcc16/) | GCC 16.2.0, binutils 2.47, with our AmigaOS 4 patches | AmigaOS 4.1 PowerPC | Experimental |
+| [rust-m68k](rust-m68k/) | Rust 1.97.0 on LLVM 22.1 with our M68k fixes | 68040, `no_std` (`m68k-unknown-none-elf`) | Experimental |
 
 All our 68k builds are for the 68040 only, and soft float by default, so one
 program runs on a full 68040 and on an LC/EC040; maths go through the Amiga's
@@ -69,7 +70,8 @@ The scripts, tests and documents here are MIT licensed (see LICENSE).
 The compilers are built from third-party sources under their own licences:
 GCC and binutils under the GPL (version 3 or later), with GCC's runtime
 library exception, and so are our AmigaOS patches to them; gmp, mpfr and mpc under the LGPL; isl under the MIT
-licence; AROS and its headers and libraries under the AROS Public License; clib2 under
+licence; LLVM, and our patches to it, under the Apache License 2.0 with LLVM
+Exceptions; Rust under MIT or Apache 2.0; AROS and its headers and libraries under the AROS Public License; clib2 under
 the BSD 3-clause licence; clib4 under the BSD 3-clause licence, with some
 files under the LGPL and GPL.
 Every release that carries binaries also carries the exact sources and

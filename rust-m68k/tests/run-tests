@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Build tests/src for the 68040 and for this PC, run the 68040 build under
+# qemu-m68k, and compare. Every line must match: integer and 64/128-bit
+# arithmetic, soft-float maths, and core::fmt integer and float printing.
+#
+#   tests/run-tests [--toolchain NAME] [--llc PATH] [--opt-level N]
+#
+#   --toolchain NAME  the rustup toolchain to build with (default rust-m68k)
+#   --llc PATH        instead, build with a stock Rust 1.97 (--toolchain 1.97.0)
+#                     and compile its LLVM bitcode with this patched llc
+#   --opt-level N     0, 1, 2, 3, s or z (default 2); run it at 0 and 2.
+#                     Not 0 with --llc: stock rustc's own LLVM crashes building
+#                     compiler_builtins at opt-level 0 (patch 0004 fixes that)
+#
+# Needs: qemu-m68k, binutils-m68k-linux-gnu (as, ld), the rust-src component
+# for -Zbuild-std. Output goes to tests/out/.
+set -euo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+TC=rust-m68k; LLC=""; OPT=2
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --toolchain) TC="$2"; shift 2 ;;
+        --llc) LLC="$2"; shift 2 ;;
+        --opt-level) OPT="$2"; shift 2 ;;
+        *) echo "unknown option: $1" >&2; exit 2 ;;
+    esac
+done
+[ -n "$LLC" ] && [ "$OPT" = 0 ] && { echo "--llc needs --opt-level 1 or more" >&2; exit 2; }
+OUT="$HERE/out/O$OPT"; rm -rf "$OUT"; mkdir -p "$OUT"
+export CARGO_TARGET_DIR="$OUT/target" CARGO_PROFILE_RELEASE_OPT_LEVEL="$OPT" RUSTC_BOOTSTRAP=1
+
+# The PC's answers.
+rustc +"$TC" --edition 2021 -O "$HERE/src/host.rs" -o "$OUT/host"
+"$OUT/host" > "$OUT/host.txt"
+
+# The 68040's answers.
+m68k-linux-gnu-as -m68040 "$HERE/src/start.S" -o "$OUT/start.o"
+EXTRA=(); [ -n "$LLC" ] && EXTRA=(--config 'target.m68k-unknown-none-elf.rustflags=["-C","save-temps"]')
+( cd "$HERE/src" && cargo +"$TC" build -q --release --config "$HERE/../cargo-config.toml" "${EXTRA[@]}" \
+    --target m68k-unknown-none-elf -Zbuild-std=core,compiler_builtins \
+    -Zbuild-std-features=compiler-builtins-mem )
+DEPS="$OUT/target/m68k-unknown-none-elf/release/deps"
+if [ -z "$LLC" ]; then
+    OBJS="$OUT/target/m68k-unknown-none-elf/release/librustcheck.a"
+else
+    # Stock rustc's own LLVM miscompiles; recompile the bitcode it saved.
+    LF="-O2 --code-model=large -mcpu=M68040 -mattr=-isa-68881,-isa-68882 -filetype=obj"
+    mkdir -p "$OUT/obj"; OBJS=""
+    for f in "$DEPS"/rustcheck-*-cgu.0.rcgu.bc "$DEPS"/compiler_builtins-*.rcgu.bc; do
+        case "$f" in *no-opt*|*lto*) continue ;; esac
+        o="$OUT/obj/$(basename "$f" .bc).o"; "$LLC" $LF "$f" -o "$o"; OBJS="$OBJS $o"
+    done
+fi
+m68k-linux-gnu-ld --gc-sections -e _start "$OUT/start.o" $OBJS -o "$OUT/rustcheck"
+rc=0; timeout 600 qemu-m68k -cpu m68040 "$OUT/rustcheck" > "$OUT/m68k.txt" || rc=$?
+if [ "$rc" != 0 ]; then
+    why=$([ "$rc" = 124 ] && echo "hung (stopped after 10 minutes)" || echo "exited with $rc")
+    echo "FAIL at opt-level $OPT: the 68040 build $why after $(wc -l < "$OUT/m68k.txt") lines"; exit 1
+fi
+if diff "$OUT/host.txt" "$OUT/m68k.txt" > "$OUT/diff.txt"; then
+    echo "PASS at opt-level $OPT: $(wc -l < "$OUT/host.txt") lines match the PC"
+else
+    echo "FAIL at opt-level $OPT: $(grep -c '^<' "$OUT/diff.txt") lines differ (see $OUT/diff.txt)"; exit 1
+fi
