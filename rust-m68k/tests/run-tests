@@ -53,7 +53,11 @@ else
     done
 fi
 m68k-linux-gnu-ld --gc-sections -e _start "$OUT/start.o" $OBJS -o "$OUT/rustcheck"
-timeout 600 qemu-m68k -cpu m68040 "$OUT/rustcheck" > "$OUT/m68k.txt"
+rc=0; timeout 600 qemu-m68k -cpu m68040 "$OUT/rustcheck" > "$OUT/m68k.txt" || rc=$?
+if [ "$rc" != 0 ]; then
+    why=$([ "$rc" = 124 ] && echo "hung (stopped after 10 minutes)" || echo "exited with $rc")
+    echo "FAIL at opt-level $OPT: the 68040 build $why after $(wc -l < "$OUT/m68k.txt") lines"; exit 1
+fi
 if diff "$OUT/host.txt" "$OUT/m68k.txt" > "$OUT/diff.txt"; then
     echo "PASS at opt-level $OPT: $(wc -l < "$OUT/host.txt") lines match the PC"
 else

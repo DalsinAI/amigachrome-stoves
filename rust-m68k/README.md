@@ -58,14 +58,16 @@ line by line. The program checks integer, 64-bit and 128-bit arithmetic,
 soft-float maths and conversions, and `core::fmt` printing of integers and
 floats at every precision. Results on 22 October 2026:
 
-| Built with | opt-level 2 | opt-level 0 |
-| --- | --- | --- |
-| Stock Rust 1.97.0 | wrong output | rustc crashes |
-| Stock Rust 1.97.0, bitcode through the patched `llc` (`--llc`) | PASS, 87 lines | (rustc crashes first) |
+| Built with | Result |
+| --- | --- |
+| rust-m68k (this stove) | PASS, all 87 lines match the PC at opt-level 0, 1, 2, 3, s and z |
+| Stock Rust 1.97.0, bitcode through the patched `llc` (`--llc`) | PASS at opt-level 2 |
+| Stock Rust 1.97.0 | FAIL: hangs before printing a line at opt-level 2; rustc crashes building `compiler_builtins` at opt-level 0 |
 
     tests/run-tests                       # with the rust-m68k toolchain
     tests/run-tests --opt-level 0
     tests/run-tests --toolchain 1.97.0 --llc work/llvm-build/bin/llc
+    tests/run-tests --toolchain 1.97.0    # stock Rust, to see it fail
 
 Needs `qemu-m68k`, `binutils-m68k-linux-gnu` and the `rust-src` component.
 
