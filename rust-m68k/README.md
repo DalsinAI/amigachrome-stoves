@@ -32,16 +32,19 @@ M68k CodeGen, MC and disassembler tests pass with the patches.
     ./build.sh --llvm-only
 
 Sources are pinned by commit (LLVM `08c84e69a84d`, Rust tag `1.97.0` =
-`2d8144b78805`) and checked after the clone. LLVM is built with assertions on,
+`2d8144b78805`) and checked after the clone; a Rust checkout with local
+changes is refused. A finished build writes `work/stove.json`: the stove's
+identity, with its pinned refs, patches, target and default flags. LLVM is built with assertions on,
 for X86 and M68k only.
 
 ## Building a program
 
-The 68040 build is soft float and uses the large code model:
+The 68040 settings (soft float, large code model) are in `cargo-config.toml`;
+`build.sh` also copies it to `work/cargo-config.toml`. Copy it into the
+project's `.cargo/config.toml`, or pass it:
 
-    RUSTC_BOOTSTRAP=1 \
-    RUSTFLAGS="-C target-cpu=M68040 -C target-feature=-isa-68881,-isa-68882 -C code-model=large" \
-    cargo +rust-m68k build --release --target m68k-unknown-none-elf \
+    RUSTC_BOOTSTRAP=1 cargo +rust-m68k build --release --target m68k-unknown-none-elf \
+        --config /path/to/rust-m68k/cargo-config.toml \
         -Zbuild-std=core,compiler_builtins -Zbuild-std-features=compiler-builtins-mem
 
 `-C code-model=large` is needed. The default small model reaches data with

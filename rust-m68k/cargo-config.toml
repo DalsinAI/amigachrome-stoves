@@ -1,0 +1,4 @@
+# The rust-m68k stove's defaults for the 68040: soft float, large code model.
+# Copy into a project's .cargo/config.toml, or pass --config <this file>.
+[target.m68k-unknown-none-elf]
+rustflags = ["-C", "target-cpu=M68040", "-C", "target-feature=-isa-68881,-isa-68882", "-C", "code-model=large"]

@@ -45,7 +45,7 @@ if [ ! -d "$SRC/.git" ]; then
     git clone --filter=blob:none --single-branch -b "$LLVM_BRANCH" "$LLVM_REPOSITORY" "$SRC"
 fi
 git -C "$SRC" am --abort 2>/dev/null || true
-git -C "$SRC" -c advice.detachedHead=false checkout -q --detach "$LLVM_REF"
+git -C "$SRC" -c advice.detachedHead=false checkout -q -f --detach "$LLVM_REF"
 got="$(git -C "$SRC" rev-parse HEAD)"
 [ "$got" = "$LLVM_REF" ] || { echo "LLVM source is at $got, not $LLVM_REF" >&2; exit 5; }
 git -C "$SRC" -c user.name=stove -c user.email=stove@localhost am -q --keep-cr "$HERE"/patches/llvm/*.patch
@@ -65,6 +65,8 @@ if [ ! -d "$RUST/.git" ]; then
 fi
 got="$(git -C "$RUST" rev-parse HEAD)"
 [ "$got" = "$RUST_REF" ] || { echo "Rust source is at $got, not $RUST_REF" >&2; exit 5; }
+git -C "$RUST" diff --quiet --ignore-submodules HEAD \
+    || { echo "Rust source has local changes; reset it to $RUST_REF first" >&2; exit 5; }
 cat > "$RUST/bootstrap.toml" <<TOML
 change-id = "ignore"
 profile = "dist"
@@ -90,4 +92,25 @@ TOML
 STAGE1="$RUST/build/x86_64-unknown-linux-gnu/stage1"
 "$STAGE1/bin/rustc" -vV
 [ "$LINK" = 1 ] && rustup toolchain link rust-m68k "$STAGE1"
+cp "$HERE/cargo-config.toml" "$WORK/cargo-config.toml"
+
+# 3. Identity: what this stove is, so it is never mistaken for another compiler.
+python3 - "$WORK" "$STAGE1" "$LLVM_REF" "$RUST_REF" "$RUST_TAG" "$HERE" <<'PY'
+import json, sys, time, subprocess
+from pathlib import Path
+work, stage1, llvm, rust, tag, here = Path(sys.argv[1]), *sys.argv[2:]
+v = subprocess.run([stage1 + "/bin/rustc", "-vV"], capture_output=True, text=True).stdout.splitlines()
+identity = {
+    "schema": 1, "id": "rust-m68k", "name": "Rust 1.97 for the 68040",
+    "target": "m68k-unknown-none-elf", "rust": tag, "rustRef": rust, "llvmRef": llvm,
+    "llvmPatches": sorted(p.name for p in (Path(here) / "patches" / "llvm").glob("*.patch")),
+    "compilerVersion": v[0], "llvmVersion": next((l.split(": ")[1] for l in v if l.startswith("LLVM version")), None),
+    "prefix": str(Path(stage1).relative_to(work)), "rustupToolchain": "rust-m68k",
+    "cargoConfig": "cargo-config.toml",
+    "defaultFlags": ["-C", "target-cpu=M68040", "-C", "target-feature=-isa-68881,-isa-68882", "-C", "code-model=large"],
+    "builtAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+}
+(work / "stove.json").write_text(json.dumps(identity, indent=2) + "\n")
+print(identity["compilerVersion"])
+PY
 echo "rust-m68k ready: $STAGE1"

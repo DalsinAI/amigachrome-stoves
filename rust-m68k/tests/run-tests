@@ -27,7 +27,6 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$LLC" ] && [ "$OPT" = 0 ] && { echo "--llc needs --opt-level 1 or more" >&2; exit 2; }
 OUT="$HERE/out/O$OPT"; rm -rf "$OUT"; mkdir -p "$OUT"
-CPU="-C target-cpu=M68040 -C target-feature=-isa-68881,-isa-68882 -C code-model=large"
 export CARGO_TARGET_DIR="$OUT/target" CARGO_PROFILE_RELEASE_OPT_LEVEL="$OPT" RUSTC_BOOTSTRAP=1
 
 # The PC's answers.
@@ -36,8 +35,8 @@ rustc +"$TC" --edition 2021 -O "$HERE/src/host.rs" -o "$OUT/host"
 
 # The 68040's answers.
 m68k-linux-gnu-as -m68040 "$HERE/src/start.S" -o "$OUT/start.o"
-EXTRA=""; [ -n "$LLC" ] && EXTRA="-C save-temps"
-( cd "$HERE/src" && RUSTFLAGS="$CPU $EXTRA" cargo +"$TC" build -q --release \
+EXTRA=(); [ -n "$LLC" ] && EXTRA=(--config 'target.m68k-unknown-none-elf.rustflags=["-C","save-temps"]')
+( cd "$HERE/src" && cargo +"$TC" build -q --release --config "$HERE/../cargo-config.toml" "${EXTRA[@]}" \
     --target m68k-unknown-none-elf -Zbuild-std=core,compiler_builtins \
     -Zbuild-std-features=compiler-builtins-mem )
 DEPS="$OUT/target/m68k-unknown-none-elf/release/deps"
